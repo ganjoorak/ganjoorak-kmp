@@ -1,6 +1,7 @@
 package net.ganjoorak.app
 
 import com.russhwolf.settings.Settings
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.MainScope
 import net.ganjoorak.app.data.EcholaliaSource
 import net.ganjoorak.app.data.LocalSource
@@ -11,6 +12,7 @@ import net.ganjoorak.app.data.remote.EcholaliaApi
 import net.ganjoorak.app.data.remote.GanjoorApi
 import net.ganjoorak.app.data.remote.createHttpClient
 import net.ganjoorak.app.platform.createAudioPlayer
+import net.ganjoorak.app.platform.httpEngine
 import net.ganjoorak.app.player.PlayerController
 import net.ganjoorak.app.resources.Res
 
@@ -20,7 +22,10 @@ const val APP_VERSION = "1.0.0"
 class AppGraph {
     private val scope = MainScope()
     private val storage = Settings()
-    private val http = createHttpClient()
+    private val http = createHttpClient(httpEngine())
+
+    /** Plain client for Coil: no JSON defaults, same explicit engine. */
+    val imageHttp: HttpClient by lazy { HttpClient(httpEngine()) }
 
     val repository = PoemRepository(
         api = GanjoorApi(http),

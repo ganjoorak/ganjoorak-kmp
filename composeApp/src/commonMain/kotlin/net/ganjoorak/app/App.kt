@@ -85,7 +85,7 @@ fun App() {
     val settings by graph.settings.settings.collectAsState()
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
-            .components { add(KtorNetworkFetcherFactory()) }
+            .components { add(KtorNetworkFetcherFactory(httpClient = { AppGraph.instance.imageHttp })) }
             .crossfade(true)
             .build()
     }

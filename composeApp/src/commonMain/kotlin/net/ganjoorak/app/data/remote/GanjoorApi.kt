@@ -2,6 +2,7 @@ package net.ganjoorak.app.data.remote
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -25,7 +26,8 @@ val GanjoorJson = Json {
     explicitNulls = false
 }
 
-fun createHttpClient(): HttpClient = HttpClient {
+/** The engine is passed in rather than discovered via ServiceLoader, which R8 can strip from release builds. */
+fun createHttpClient(engine: HttpClientEngineFactory<*>): HttpClient = HttpClient(engine) {
     expectSuccess = true
     install(ContentNegotiation) { json(GanjoorJson) }
     install(HttpTimeout) {

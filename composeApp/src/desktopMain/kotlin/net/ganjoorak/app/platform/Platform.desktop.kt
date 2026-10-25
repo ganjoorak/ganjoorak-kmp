@@ -2,6 +2,8 @@ package net.ganjoorak.app.platform
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
+import io.ktor.client.engine.HttpClientEngineFactory
+import io.ktor.client.engine.okhttp.OkHttp
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 import java.awt.Desktop
@@ -32,6 +34,8 @@ private class BrowserAudioPlayer : AudioPlayer {
 }
 
 actual fun createAudioPlayer(): AudioPlayer = BrowserAudioPlayer()
+
+actual fun httpEngine(): HttpClientEngineFactory<*> = OkHttp
 
 actual fun shareText(text: String, title: String): Boolean {
     copyText(text)

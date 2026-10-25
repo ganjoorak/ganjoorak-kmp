@@ -19,6 +19,8 @@ interface AudioPlayer {
 
 expect fun createAudioPlayer(): AudioPlayer
 
+expect fun httpEngine(): io.ktor.client.engine.HttpClientEngineFactory<*>
+
 /** Shares [text] through the system sheet. Returns false when it was copied to the clipboard instead. */
 expect fun shareText(text: String, title: String): Boolean
 

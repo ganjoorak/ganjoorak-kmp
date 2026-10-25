@@ -8,6 +8,8 @@ import android.graphics.Bitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.core.content.FileProvider
+import io.ktor.client.engine.HttpClientEngineFactory
+import io.ktor.client.engine.okhttp.OkHttp
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.media3.common.AudioAttributes
@@ -61,6 +63,8 @@ private class ExoAudioPlayer(context: Context) : AudioPlayer {
 }
 
 actual fun createAudioPlayer(): AudioPlayer = ExoAudioPlayer(AndroidPlatform.context)
+
+actual fun httpEngine(): HttpClientEngineFactory<*> = OkHttp
 
 actual fun shareText(text: String, title: String): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
