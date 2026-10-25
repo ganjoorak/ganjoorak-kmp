@@ -102,6 +102,7 @@ class GanjoorApi(
         repeat(RANDOM_ATTEMPTS - 1) {
             val response = fetch()
             if (response.status != HttpStatusCode.NoContent) return response.json()
+            println("Ganjoorak: random poem came back empty, asking again")
         }
         return fetch().json()
     }

@@ -6,6 +6,8 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.ganjoorak.app.data.remote.GanjoorApi
@@ -165,7 +167,11 @@ class PoemRepository(
     private suspend fun <T> request(failure: String, block: suspend () -> T): T = try {
         block()
     } catch (e: CancellationException) {
-        throw e
+        // Ktor can report a failed call as a CancellationException. Only a cancellation of the
+        // caller itself should pass through silently; anything else is a failed request.
+        if (!currentCoroutineContext().isActive) throw e
+        println("Ganjoorak: $failure: $e, cause: ${e.cause}")
+        throw GanjoorException("$failure. اتصال اینترنت را بررسی کنید", e)
     } catch (e: GanjoorException) {
         throw e
     } catch (e: ClientRequestException) {

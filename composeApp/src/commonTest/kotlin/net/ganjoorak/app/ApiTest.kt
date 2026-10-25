@@ -96,6 +96,12 @@ class ApiTest {
     }
 
     @Test
+    fun callFailingAsCancellationBecomesError() = runTest {
+        val repo = repository(handler = { _, _ -> throw kotlinx.coroutines.CancellationException("engine gave up") })
+        assertFailsWith<GanjoorException> { repo.randomPoem() }
+    }
+
+    @Test
     fun notFoundBecomesFriendlyError() = runTest {
         val repo = repository(handler = { _, _ -> HttpStatusCode.NotFound to "{}" })
         val error = assertFailsWith<GanjoorException> { repo.poem(PoemRef(PoetSource.Ganjoor, 1)) }

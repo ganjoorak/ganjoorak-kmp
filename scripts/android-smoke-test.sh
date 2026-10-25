@@ -64,13 +64,9 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   fi
   echo "--- uiautomator says"
   adb shell uiautomator dump /sdcard/ui2.xml 2>&1 | tail -2
-  echo "--- screenshot (base64 jpeg)"
+  echo "--- screenshot (base64 png)"
   adb exec-out screencap -p > /tmp/shot.png
-  if command -v convert >/dev/null; then
-    convert /tmp/shot.png -resize 240x -quality 60 /tmp/shot.jpg && echo "BEGIN-SHOT" && base64 -w 160 /tmp/shot.jpg && echo "END-SHOT"
-  else
-    echo "(no imagemagick)"
-  fi
+  echo "BEGIN-SHOT $name" && base64 -w 200 /tmp/shot.png && echo "END-SHOT"
   echo "--- app log after waiting"
   adb logcat -d | grep -E "Ganjoorak:" | head -20
   rm -f /tmp/ui.xml
