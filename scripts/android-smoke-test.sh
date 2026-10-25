@@ -4,9 +4,17 @@
 set -u
 pkg=net.ganjoorak.app
 status=0
+echo "--- what the APIs return from this runner"
+for url in "https://api.ganjoor.net/api/ganjoor/poem/random" "https://echolalia.ir/wp-json/wp/v2/categories?slug=sher"; do
+  curl -sS -m 20 -o /tmp/body -D - "$url" | grep -iE "^(HTTP|content-type|server)" || true
+  head -c 200 /tmp/body; echo
+done
 echo "--- emulator network"
-adb shell ping -c 1 -W 5 8.8.8.8 || echo "no IP connectivity"
-adb shell ping -c 1 -W 5 api.ganjoor.net || echo "api.ganjoor.net unreachable"
+for i in $(seq 1 30); do
+  adb shell ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && { echo "network up after ${i} tries"; break; }
+  sleep 2
+done
+adb shell ping -c 1 -W 5 api.ganjoor.net || echo "api.ganjoor.net unreachable from the emulator"
 for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/build/outputs/apk/release/androidApp-release.apk; do
   name=$(basename "$apk")
   echo "::group::$name"

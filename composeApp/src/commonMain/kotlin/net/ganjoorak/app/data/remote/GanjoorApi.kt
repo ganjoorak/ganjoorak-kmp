@@ -12,6 +12,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.KotlinxSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -29,7 +30,11 @@ val GanjoorJson = Json {
 /** The engine is passed in rather than discovered via ServiceLoader, which R8 can strip from release builds. */
 fun createHttpClient(engine: HttpClientEngineFactory<*>): HttpClient = HttpClient(engine) {
     expectSuccess = true
-    install(ContentNegotiation) { json(GanjoorJson) }
+    install(ContentNegotiation) {
+        json(GanjoorJson)
+        // Responses aren't always labelled application/json; parse whatever comes back as JSON.
+        register(ContentType.Any, KotlinxSerializationConverter(GanjoorJson))
+    }
     install(HttpTimeout) {
         requestTimeoutMillis = 30_000
         connectTimeoutMillis = 15_000
