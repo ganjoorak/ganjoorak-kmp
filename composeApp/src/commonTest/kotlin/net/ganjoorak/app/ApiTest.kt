@@ -81,6 +81,21 @@ class ApiTest {
     }
 
     @Test
+    fun randomPoemRetriesEmptyAnswers() = runTest {
+        var randomCalls = 0
+        val repo = repository(handler = { path, _ ->
+            when (path) {
+                "/api/ganjoor/poem/random" -> if (++randomCalls < 3) HttpStatusCode.NoContent to "" else HttpStatusCode.OK to
+                    """{"id": 8, "title": "r", "fullTitle": "حافظ » r", "category": {"poet": {"id": 2, "name": "حافظ"}},
+                    "verses": [{"vOrder": 1, "versePosition": 0, "text": "الا"}, {"vOrder": 2, "versePosition": 1, "text": "یا"}]}"""
+                else -> HttpStatusCode.NotFound to "{}"
+            }
+        })
+        assertEquals("حافظ", repo.randomPoem().poetName)
+        assertEquals(3, randomCalls)
+    }
+
+    @Test
     fun notFoundBecomesFriendlyError() = runTest {
         val repo = repository(handler = { _, _ -> HttpStatusCode.NotFound to "{}" })
         val error = assertFailsWith<GanjoorException> { repo.poem(PoemRef(PoetSource.Ganjoor, 1)) }

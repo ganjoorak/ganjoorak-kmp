@@ -13,13 +13,16 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import net.ganjoorak.app.APP_VERSION
 
 const val GANJOOR_API_BASE_URL = "https://api.ganjoor.net"
 const val SEMANTIC_API_BASE_URL = "https://ganjgah.ir"
+private const val RANDOM_ATTEMPTS = 3
 
 val GanjoorJson = Json {
     ignoreUnknownKeys = true
@@ -36,7 +39,9 @@ fun createHttpClient(engine: HttpClientEngineFactory<*>): HttpClient = HttpClien
         connectTimeoutMillis = 15_000
     }
     defaultRequest {
-        headers.append("Accept", "application/json")
+        headers.append(HttpHeaders.Accept, "application/json")
+        // Without this OkHttp sends "okhttp/…", which some servers treat as a bot.
+        headers.append(HttpHeaders.UserAgent, "Ganjoorak/$APP_VERSION")
     }
 }
 
@@ -89,9 +94,17 @@ class GanjoorApi(
         parameter("relatedpoems", false)
     }.json()
 
-    suspend fun randomPoem(poetId: Int? = null): PoemDto = client.get("$baseUrl/api/ganjoor/poem/random") {
-        if (poetId != null && poetId > 0) parameter("poetId", poetId)
-    }.json()
+    suspend fun randomPoem(poetId: Int? = null): PoemDto {
+        suspend fun fetch() = client.get("$baseUrl/api/ganjoor/poem/random") {
+            if (poetId != null && poetId > 0) parameter("poetId", poetId)
+        }
+        // The endpoint now and then answers 204 with no body; ask again before giving up.
+        repeat(RANDOM_ATTEMPTS - 1) {
+            val response = fetch()
+            if (response.status != HttpStatusCode.NoContent) return response.json()
+        }
+        return fetch().json()
+    }
 
     suspend fun search(term: String, page: Int, pageSize: Int, poetId: Int? = null): SearchResponse {
         val response = client.get("$baseUrl/api/ganjoor/poems/search") {

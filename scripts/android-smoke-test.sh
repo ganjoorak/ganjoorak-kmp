@@ -10,6 +10,15 @@ for url in "https://api.ganjoor.net/api/ganjoor/poem/random" "https://echolalia.
   curl -sS -m 20 -o /tmp/body -D - "$url" | grep -iE "^(HTTP|content-type|server)" || true
   [ -f /tmp/body ] && head -c 200 /tmp/body; echo
 done
+echo "--- random poem status by request headers (3 tries each)"
+random=https://api.ganjoor.net/api/ganjoor/poem/random
+for ua in "curl/8" "okhttp/5.1.0" "Ganjoorak/1.0.0"; do
+  codes=""
+  for i in 1 2 3; do
+    codes="$codes $(curl -s -m 20 -o /dev/null -w '%{http_code}' -A "$ua" -H 'Accept: application/json' -H 'Accept-Encoding: gzip' "$random")"
+  done
+  echo "$ua:$codes"
+done
 for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/build/outputs/apk/release/androidApp-release.apk; do
   name=$(basename "$apk")
   echo "::group::$name"
