@@ -6,15 +6,10 @@ pkg=net.ganjoorak.app
 status=0
 echo "--- what the APIs return from this runner"
 for url in "https://api.ganjoor.net/api/ganjoor/poem/random" "https://echolalia.ir/wp-json/wp/v2/categories?slug=sher"; do
+  rm -f /tmp/body
   curl -sS -m 20 -o /tmp/body -D - "$url" | grep -iE "^(HTTP|content-type|server)" || true
-  head -c 200 /tmp/body; echo
+  [ -f /tmp/body ] && head -c 200 /tmp/body; echo
 done
-echo "--- emulator network"
-for i in $(seq 1 30); do
-  adb shell ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && { echo "network up after ${i} tries"; break; }
-  sleep 2
-done
-adb shell ping -c 1 -W 5 api.ganjoor.net || echo "api.ganjoor.net unreachable from the emulator"
 for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/build/outputs/apk/release/androidApp-release.apk; do
   name=$(basename "$apk")
   echo "::group::$name"
@@ -42,7 +37,9 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   adb logcat -d '*:E' | grep -iE "ganjoorak|AndroidRuntime|FATAL|Exception" | head -100
   echo "--- on screen"
   if adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; then
-    adb shell cat /sdcard/ui.xml | grep -oE '(text|content-desc)="[^"]+"' | head -60
+    adb shell cat /sdcard/ui.xml > /tmp/ui.xml
+    grep -oE '(text|content-desc)="[^"]+"' /tmp/ui.xml | head -60
+    grep -q "ممکن نشد" /tmp/ui.xml && echo "::warning::$name shows a loading error on the home screen"
   else
     echo "(screen dump unavailable)"
   fi

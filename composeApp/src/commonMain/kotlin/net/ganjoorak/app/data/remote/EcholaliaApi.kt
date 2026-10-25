@@ -1,7 +1,6 @@
 package net.ganjoorak.app.data.remote
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import kotlinx.serialization.Serializable
@@ -47,11 +46,11 @@ class EcholaliaApi(
         client.get("$baseUrl/categories") {
             parameter("slug", slug)
             parameter("_fields", CATEGORY_FIELDS)
-        }.body<List<WpCategory>>().firstOrNull()
+        }.json<List<WpCategory>>().firstOrNull()
 
     suspend fun category(id: Int): WpCategory = client.get("$baseUrl/categories/$id") {
         parameter("_fields", CATEGORY_FIELDS)
-    }.body()
+    }.json()
 
     suspend fun categories(page: Int): WpPage<WpCategory> {
         val response = client.get("$baseUrl/categories") {
@@ -59,7 +58,7 @@ class EcholaliaApi(
             parameter("page", page)
             parameter("_fields", CATEGORY_FIELDS)
         }
-        return WpPage(response.body(), response.headers["x-wp-totalpages"]?.toIntOrNull() ?: 1)
+        return WpPage(response.json(), response.headers["x-wp-totalpages"]?.toIntOrNull() ?: 1)
     }
 
     suspend fun postsInCategory(categoryId: Int, page: Int): WpPage<WpPost> {
@@ -69,16 +68,16 @@ class EcholaliaApi(
             parameter("page", page)
             parameter("_fields", "id,date,slug,link,title,categories")
         }
-        return WpPage(response.body(), response.headers["x-wp-totalpages"]?.toIntOrNull() ?: 1)
+        return WpPage(response.json(), response.headers["x-wp-totalpages"]?.toIntOrNull() ?: 1)
     }
 
     suspend fun post(id: Int): WpPost = client.get("$baseUrl/posts/$id") {
         parameter("_fields", "id,date,slug,link,title,content,excerpt,categories")
-    }.body()
+    }.json()
 
     suspend fun search(query: String, perPage: Int): List<WpPost> = client.get("$baseUrl/posts") {
         parameter("search", query)
         parameter("per_page", perPage)
         parameter("_fields", "id,slug,link,title,content,excerpt,categories")
-    }.body()
+    }.json()
 }

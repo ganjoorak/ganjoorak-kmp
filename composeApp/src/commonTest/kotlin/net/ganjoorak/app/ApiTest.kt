@@ -3,11 +3,9 @@ package net.ganjoorak.app
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import net.ganjoorak.app.data.EcholaliaSource
 import net.ganjoorak.app.data.GanjoorException
@@ -17,7 +15,6 @@ import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.data.remote.EcholaliaApi
 import net.ganjoorak.app.data.PoemRepository
 import net.ganjoorak.app.data.remote.GanjoorApi
-import net.ganjoorak.app.data.remote.GanjoorJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -35,12 +32,11 @@ class ApiTest {
                 content = body,
                 status = status,
                 headers = headersOf(
-                    *(headers + (HttpHeaders.ContentType to "application/json")).map { it.key to listOf(it.value) }.toTypedArray(),
+                    *(headers + (HttpHeaders.ContentType to "text/plain")).map { it.key to listOf(it.value) }.toTypedArray(),
                 ),
             )
         }) {
             expectSuccess = true
-            install(ContentNegotiation) { json(GanjoorJson) }
         }
         return PoemRepository(
             api = GanjoorApi(client),
