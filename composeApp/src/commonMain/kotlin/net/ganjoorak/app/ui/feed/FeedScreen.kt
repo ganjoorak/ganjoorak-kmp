@@ -140,7 +140,9 @@ fun FeedScreen(
             state = pager,
             modifier = Modifier.fillMaxSize().padding(padding),
             beyondViewportPageCount = 1,
-            key = { index -> state.poems.getOrNull(index)?.ref?.key ?: "loader" },
+            // The loader's key must change with its position: with a fixed key the pager keeps the
+            // loader in view as poems are inserted before it, so the first poem never shows.
+            key = { index -> state.poems.getOrNull(index)?.ref?.key ?: "loader-$index" },
         ) { index ->
             val poem = state.poems.getOrNull(index)
             when {

@@ -22,7 +22,7 @@ import net.ganjoorak.app.APP_VERSION
 
 const val GANJOOR_API_BASE_URL = "https://api.ganjoor.net"
 const val SEMANTIC_API_BASE_URL = "https://ganjgah.ir"
-private const val RANDOM_ATTEMPTS = 3
+private const val RANDOM_ATTEMPTS = 5
 
 val GanjoorJson = Json {
     ignoreUnknownKeys = true
