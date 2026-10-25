@@ -4,6 +4,22 @@
 set -u
 pkg=net.ganjoorak.app
 status=0
+
+# Taps the centre of the first node whose text or content-desc is exactly $1.
+tap() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  local b
+  b=$(adb shell cat /sdcard/ui.xml | tr '>' '\n' | grep -E "(text|content-desc)=\"$1\"" \
+    | grep -oE 'bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"' | head -1 | grep -oE '[0-9]+' | tr '\n' ' ')
+  set -- $b
+  if [ $# -eq 4 ]; then adb shell input tap $(( ($1 + $3) / 2 )) $(( ($2 + $4) / 2 )); else echo "(nothing labelled to tap)"; fi
+}
+
+# Prints the screen as base64 PNG between markers.
+shot() {
+  adb exec-out screencap -p > /tmp/shot.png
+  echo "BEGIN-SHOT $1" && base64 -w 200 /tmp/shot.png && echo "END-SHOT"
+}
 echo "--- what the APIs return from this runner"
 for url in "https://api.ganjoor.net/api/ganjoor/poem/random" "https://echolalia.ir/wp-json/wp/v2/categories?slug=sher"; do
   rm -f /tmp/body
@@ -65,8 +81,17 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   echo "--- uiautomator says"
   adb shell uiautomator dump /sdcard/ui2.xml 2>&1 | tail -2
   echo "--- screenshot (base64 png)"
-  adb exec-out screencap -p > /tmp/shot.png
-  echo "BEGIN-SHOT $name" && base64 -w 200 /tmp/shot.png && echo "END-SHOT"
+  shot "$name"
+  if [[ "$name" == *release* ]]; then
+    for tab in "شاعران" "پروفایل"; do
+      echo "--- tab $tab"
+      tap "$tab"
+      sleep 12
+      adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml \
+        | grep -oE '(text|content-desc)="[^"]+"' | head -30
+      shot "$name-$tab"
+    done
+  fi
   echo "--- app log after waiting"
   adb logcat -d | grep -E "Ganjoorak:" | head -20
   rm -f /tmp/ui.xml

@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +34,7 @@ import net.ganjoorak.app.ui.components.MessageBox
 import net.ganjoorak.app.util.toPersianDigits
 
 @Composable
-fun SavedScreen(onOpenPoem: (PoemRef) -> Unit) {
+fun SavedScreen(onBack: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
     val library = AppGraph.instance.library
     val saved by library.savedPoems.collectAsState()
 
@@ -43,6 +43,9 @@ fun SavedScreen(onOpenPoem: (PoemRef) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text(if (saved.isEmpty()) "نشان‌شده‌ها" else "نشان‌شده‌ها (${saved.size.toPersianDigits()})") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "بازگشت") }
+                },
             )
         },
     ) { padding ->

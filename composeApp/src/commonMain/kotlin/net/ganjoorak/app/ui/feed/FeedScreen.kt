@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -53,6 +52,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
@@ -82,7 +82,6 @@ fun FeedScreen(
     onOpenPoem: (PoemRef) -> Unit,
     onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     val graph = AppGraph.instance
     val vm = viewModel { FeedViewModel(graph.repository, graph.settings) }
@@ -104,18 +103,11 @@ fun FeedScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("گنجورک", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            when (state.followed.size) {
-                                0 -> "شعر تصادفی از همهٔ شاعران"
-                                1 -> state.followed.first().name
-                                else -> "${state.followed.size.toPersianDigits()} شاعر برگزیده"
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Text(
+                        state.poems.getOrNull(pager.currentPage)?.title.orEmpty(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 actions = {
                     if (state.followed.isNotEmpty()) {
@@ -128,9 +120,6 @@ fun FeedScreen(
                     }
                     IconButton(onClick = vm::refresh) {
                         Icon(Icons.Filled.Refresh, contentDescription = "شعرهای تازه")
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "تنظیمات")
                     }
                 },
             )
@@ -192,7 +181,7 @@ private fun FeedPage(
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             item(key = "header") {
-                PoemHeader(poem, onPoetClick = onOpenPoet, onCategoryClick = onOpenCategory)
+                PoemHeader(poem, onPoetClick = onOpenPoet, onCategoryClick = onOpenCategory, showTitle = false)
             }
             poemBlocks(poem, numbers, sideBySide, activeVerse, onVerseClick = null)
             item(key = "actions") {

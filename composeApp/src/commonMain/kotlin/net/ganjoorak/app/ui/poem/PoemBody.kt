@@ -57,6 +57,8 @@ fun PoemHeader(
     onPoetClick: ((String) -> Unit)?,
     onCategoryClick: ((CategoryRef) -> Unit)?,
     modifier: Modifier = Modifier,
+    /** False where the title is already shown elsewhere, e.g. in the feed's top bar. */
+    showTitle: Boolean = true,
 ) {
     Column(
         modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
@@ -101,11 +103,13 @@ fun PoemHeader(
                 }
             }
         }
-        Text(
-            poem.title,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-        )
+        if (showTitle) {
+            Text(
+                poem.title,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+            )
+        }
         poem.summary?.let {
             Text(
                 it,

@@ -25,13 +25,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
@@ -74,16 +74,16 @@ import net.ganjoorak.app.ui.poem.PoemScreen
 import net.ganjoorak.app.ui.poets.CategoryScreen
 import net.ganjoorak.app.ui.poets.PoetScreen
 import net.ganjoorak.app.ui.poets.PoetsScreen
+import net.ganjoorak.app.ui.profile.ProfileScreen
 import net.ganjoorak.app.ui.saved.SavedScreen
 import net.ganjoorak.app.ui.search.SearchScreen
-import net.ganjoorak.app.ui.settings.SettingsScreen
 import net.ganjoorak.app.ui.theme.GanjoorakTheme
 
 @Serializable data object FeedRoute
 @Serializable data object PoetsRoute
 @Serializable data object SearchRoute
 @Serializable data object SavedRoute
-@Serializable data object SettingsRoute
+@Serializable data object ProfileRoute
 @Serializable data class PoemRoute(val id: Int, val source: PoetSource = PoetSource.Ganjoor, val poet: String = "") {
     val ref: PoemRef get() = PoemRef(source, id, poet)
 }
@@ -102,7 +102,14 @@ private enum class Tab(
     Feed(FeedRoute, { it.hasRoute<FeedRoute>() }, "خانه", Icons.Outlined.Home, Icons.Filled.Home),
     Poets(PoetsRoute, { it.hasRoute<PoetsRoute>() }, "شاعران", Icons.Outlined.People, Icons.Filled.People),
     Search(SearchRoute, { it.hasRoute<SearchRoute>() }, "جستجو", Icons.Filled.Search, Icons.Filled.Search),
-    Saved(SavedRoute, { it.hasRoute<SavedRoute>() }, "نشان‌ها", Icons.Outlined.Bookmarks, Icons.Filled.Bookmarks),
+    // Saved poems open from the profile page, so the profile tab stays lit there.
+    Profile(
+        ProfileRoute,
+        { it.hasRoute<ProfileRoute>() || it.hasRoute<SavedRoute>() },
+        "پروفایل",
+        Icons.Outlined.Person,
+        Icons.Filled.Person,
+    ),
 }
 
 /** Root composable shared by every platform. */
@@ -264,13 +271,12 @@ private fun AppNavHost(nav: NavHostController, openPoem: (PoemRef) -> Unit) {
                 onOpenPoem = openPoem,
                 onOpenPoet = openPoet,
                 onOpenCategory = openCategory,
-                onOpenSettings = { nav.navigate(SettingsRoute) },
             )
         }
         composable<PoetsRoute> { PoetsScreen(onOpenPoet = openPoet) }
         composable<SearchRoute> { SearchScreen(onOpenPoem = openPoem) }
-        composable<SavedRoute> { SavedScreen(onOpenPoem = openPoem) }
-        composable<SettingsRoute> { SettingsScreen(onBack = { nav.popBackStack() }) }
+        composable<ProfileRoute> { ProfileScreen(onOpenSaved = { nav.navigate(SavedRoute) }) }
+        composable<SavedRoute> { SavedScreen(onBack = back, onOpenPoem = openPoem) }
         composable<PoemRoute> { entry ->
             PoemScreen(
                 ref = entry.toRoute<PoemRoute>().ref,
