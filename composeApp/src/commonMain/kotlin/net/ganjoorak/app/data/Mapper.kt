@@ -51,7 +51,11 @@ fun PoetCompleteDto.toCategory(): Category {
         ancestors = cat.ancestors.orEmpty().map { it.toRef() },
         children = cat.children.orEmpty().map { it.toRef() },
         poems = cat.poems.orEmpty().map {
-            PoemSummary(id = it.id, title = it.title.orEmpty(), excerpt = it.excerpt?.stripHtml()?.takeIf { e -> e.isNotBlank() })
+            PoemSummary(
+                ref = PoemRef(PoetSource.Ganjoor, it.id),
+                title = it.title.orEmpty(),
+                excerpt = it.excerpt?.stripHtml()?.takeIf { e -> e.isNotBlank() },
+            )
         },
     )
 }
@@ -108,6 +112,23 @@ internal fun versesFromText(text: String): List<Verse> =
         Verse(order = index + 1, position = if (index % 2 == 0) VersePosition.Right else VersePosition.Left, text = line)
     }
 
+/** Free verse (Echolalia, bundled poets): one line per verse, blank lines become stanza breaks. */
+internal fun freeVerse(text: String): Pair<List<Verse>, List<PoemBlock>> {
+    val verses = mutableListOf<Verse>()
+    val blocks = mutableListOf<PoemBlock>()
+    text.lines().map { it.trim() }.forEach { line ->
+        if (line.isEmpty()) {
+            if (blocks.isNotEmpty() && blocks.last() !is PoemBlock.Break) blocks += PoemBlock.Break
+        } else {
+            val verse = Verse(order = verses.size + 1, position = VersePosition.Single, text = line)
+            verses += verse
+            blocks += PoemBlock.Line(verse)
+        }
+    }
+    if (blocks.lastOrNull() is PoemBlock.Break) blocks.removeAt(blocks.lastIndex)
+    return verses to blocks
+}
+
 fun PoemDto.toPoem(): Poem {
     require(id > 0) { "poem not found" }
     val titleParts = splitTitle(fullTitle)
@@ -126,11 +147,12 @@ fun PoemDto.toPoem(): Poem {
     }.filter { it.title.isNotBlank() }
 
     return Poem(
-        id = id,
+        ref = PoemRef(PoetSource.Ganjoor, id),
         title = title.orEmpty().ifBlank { titleParts.lastOrNull().orEmpty() },
         fullTitle = fullTitle.orEmpty(),
-        fullUrl = fullUrl.orEmpty(),
+        link = "https://ganjoor.net${fullUrl.orEmpty()}",
         poetId = poetDto?.id,
+        poetKey = poetDto?.id?.let { PoetKey(PoetSource.Ganjoor, it.toString()).value },
         poetName = poetName,
         poetImageUrl = poetDto?.let { poetImageUrl(it.imageUrl, slugFromUrl(it.fullUrl)) }
             ?: slugFromUrl(fullUrl).takeIf { it.isNotEmpty() }?.let { poetImageUrl(null, it) },
@@ -150,7 +172,7 @@ internal fun PoemDto.isIncomplete(): Boolean = verses.isNullOrEmpty() || categor
 fun PoemDto.toSearchHit(term: String): SearchHit {
     val parts = splitTitle(fullTitle)
     return SearchHit(
-        poemId = id,
+        ref = PoemRef(PoetSource.Ganjoor, id),
         title = title.orEmpty().ifBlank { parts.lastOrNull().orEmpty() },
         poetName = parts.firstOrNull().orEmpty(),
         breadcrumb = parts.drop(1).dropLast(1).joinToString(" » ").takeIf { it.isNotBlank() },
@@ -161,7 +183,7 @@ fun PoemDto.toSearchHit(term: String): SearchHit {
 fun SemanticResultDto.toSearchHit(): SearchHit {
     val parts = splitTitle(fullTitle)
     return SearchHit(
-        poemId = poemId.takeIf { it > 0 } ?: id,
+        ref = PoemRef(PoetSource.Ganjoor, poemId.takeIf { it > 0 } ?: id),
         title = title.orEmpty().ifBlank { parts.lastOrNull().orEmpty() },
         poetName = parts.firstOrNull().orEmpty(),
         breadcrumb = parts.drop(1).dropLast(1).joinToString(" » ").takeIf { it.isNotBlank() },

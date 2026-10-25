@@ -14,6 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -48,6 +50,7 @@ import net.ganjoorak.app.data.local.ThemeMode
 import net.ganjoorak.app.ui.components.SectionTitle
 import net.ganjoorak.app.ui.poem.PoemBlockView
 import net.ganjoorak.app.ui.theme.fontFamilyFor
+import net.ganjoorak.app.ui.theme.fontLabel
 import net.ganjoorak.app.util.toPersianDigits
 import kotlin.math.roundToInt
 
@@ -57,14 +60,19 @@ private val SamplePreview = PoemBlock.Couplet(
 )
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onOpenMenu: () -> Unit) {
     val store = AppGraph.instance.settings
     val settings by store.settings.collectAsState()
     val uriHandler = LocalUriHandler.current
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { TopAppBar(title = { Text("تنظیمات") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("تنظیمات") },
+                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
+            )
+        },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 720.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
@@ -79,14 +87,14 @@ fun SettingsScreen() {
 
                 SectionTitle("پوسته")
                 ChipRow(
-                    options = ThemeMode.entries,
+                    options = listOf(ThemeMode.Dark, ThemeMode.Light, ThemeMode.Paper, ThemeMode.System),
                     selected = settings.theme,
                     label = {
                         when (it) {
-                            ThemeMode.System -> "هماهنگ با دستگاه"
+                            ThemeMode.Dark -> "تاریک"
                             ThemeMode.Light -> "روشن"
-                            ThemeMode.Dark -> "تیره"
                             ThemeMode.Paper -> "کاغذی"
+                            ThemeMode.System -> "هماهنگ با دستگاه"
                         }
                     },
                     onSelect = { mode -> store.update { it.copy(theme = mode) } },
@@ -144,13 +152,6 @@ fun SettingsScreen() {
             }
         }
     }
-}
-
-private fun fontLabel(font: PoemFont) = when (font) {
-    PoemFont.Vazirmatn -> "وزیرمتن"
-    PoemFont.Samim -> "صمیم"
-    PoemFont.Shabnam -> "شبنم"
-    PoemFont.Gandom -> "گندم"
 }
 
 @Composable

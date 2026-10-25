@@ -10,13 +10,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.ganjoorak.app.data.Poem
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoemRepository
 import net.ganjoorak.app.data.Recitation
 import net.ganjoorak.app.data.VerseTiming
 import net.ganjoorak.app.platform.AudioPlayer
 
 data class PlayerState(
-    val poemId: Int? = null,
+    val poemRef: PoemRef? = null,
     val poemTitle: String = "",
     val poetName: String = "",
     val recitation: Recitation? = null,
@@ -62,7 +63,7 @@ class PlayerController(
             return
         }
         val current = _state.value
-        if (current.poemId == poem.id && current.recitation?.id == recitation.id) {
+        if (current.poemRef == poem.ref && current.recitation?.id == recitation.id) {
             if (!current.isPlaying) resume()
             return
         }
@@ -76,7 +77,7 @@ class PlayerController(
         player.load(recitation.mp3Url)
         player.play()
         _state.value = PlayerState(
-            poemId = poem.id,
+            poemRef = poem.ref,
             poemTitle = poem.title,
             poetName = poem.poetName,
             recitation = recitation,

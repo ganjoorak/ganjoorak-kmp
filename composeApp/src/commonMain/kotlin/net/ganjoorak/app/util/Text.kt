@@ -22,6 +22,48 @@ fun String.stripHtml(): String = replace(BLOCK_END, "\n")
     .joinToString("\n") { it.replace(SPACES, " ").trim() }
     .trim()
 
+private val NUMERIC_ENTITY = Regex("&#(x[0-9a-fA-F]+|\\d+);")
+private val NAMED_ENTITY = Regex("&([a-zA-Z]+);")
+private val NAMED_ENTITIES = mapOf(
+    "amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'",
+    "nbsp" to " ", "hellip" to "...", "zwnj" to "‌", "laquo" to "«", "raquo" to "»",
+)
+
+fun String.decodeHtmlEntities(): String = this
+    .replace(NUMERIC_ENTITY) { match ->
+        val code = match.groupValues[1]
+        val value = if (code.startsWith("x")) code.drop(1).toIntOrNull(16) else code.toIntOrNull()
+        value?.let { codePointToString(it) } ?: match.value
+    }
+    .replace(NAMED_ENTITY) { NAMED_ENTITIES[it.groupValues[1]] ?: it.value }
+
+private fun codePointToString(codePoint: Int): String = if (codePoint < 0x10000) {
+    codePoint.toChar().toString()
+} else {
+    val offset = codePoint - 0x10000
+    charArrayOf(((offset shr 10) + 0xD800).toChar(), ((offset and 0x3FF) + 0xDC00).toChar()).concatToString()
+}
+
+private val SING_BLOCK = Regex("<div\\s+class=[\"']sing-block[\"'][\\s\\S]*$", RegexOption.IGNORE_CASE)
+private val LINE_BREAK = Regex("<br\\s*/?>", RegexOption.IGNORE_CASE)
+private val PARAGRAPH_END = Regex("</(p|div)\\s*>", RegexOption.IGNORE_CASE)
+
+/**
+ * WordPress post HTML to plain text: one line per `<br>`, a blank line between paragraphs,
+ * and the trailing «sing-block» (audio/credits widget) dropped.
+ */
+fun String.wordpressToText(): String = replace(SING_BLOCK, "")
+    .replace(LINE_BREAK, "\n")
+    .replace(PARAGRAPH_END, "\n\n")
+    .replace(TAG, "")
+    .replace("\r", "")
+    .decodeHtmlEntities()
+    .lines()
+    .map { it.replace(SPACES, " ").trim() }
+    .joinToString("\n")
+    .replace(Regex("\n{3,}"), "\n\n")
+    .trim()
+
 private val DIACRITICS = Regex("[\\u064B-\\u065F\\u0670\\u06D6-\\u06ED]")
 
 /** Folds Arabic letter variants, diacritics and ZWNJ so Persian text matches loosely. */

@@ -1,8 +1,11 @@
 package net.ganjoorak.app.ui.poets
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,10 +14,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -48,16 +54,26 @@ import net.ganjoorak.app.util.hijriLifespan
 import net.ganjoorak.app.util.normalizeForSearch
 import net.ganjoorak.app.util.toPersianDigits
 
+private enum class PoetFilter(val label: String) { All("همه"), Classic("کهن (گنجور)"), Contemporary("معاصر و جهان") }
+
 @Composable
-fun PoetsScreen(onOpenPoet: (Int) -> Unit) {
-    val graph = AppGraph.instance
-    val loader = rememberLoader("poet-groups") { graph.repository.poetGroups() }
-    val state by loader.state.collectAsState()
+fun PoetsScreen(onOpenMenu: () -> Unit, onOpenPoet: (String) -> Unit) {
+    val repository = AppGraph.instance.repository
+    val classic = rememberLoader("poet-groups") { repository.poetGroups() }
+    val contemporary = rememberLoader("contemporary-groups") { repository.contemporaryGroups() }
+    val classicState by classic.state.collectAsState()
+    val contemporaryState by contemporary.state.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf(PoetFilter.All) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { TopAppBar(title = { Text("شاعران") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("شاعران") },
+                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
+            )
+        },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             OutlinedTextField(
@@ -71,18 +87,34 @@ fun PoetsScreen(onOpenPoet: (Int) -> Unit) {
                         IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = "پاک کردن") }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             )
-            when (val s = state) {
-                is Loadable.Loading -> LoadingBox()
-                is Loadable.Error -> ErrorBox(s.message, onRetry = loader::reload)
-                is Loadable.Ready -> {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PoetFilter.entries.forEach {
+                    FilterChip(selected = filter == it, onClick = { filter = it }, label = { Text(it.label) })
+                }
+            }
+
+            val sources = buildList {
+                if (filter != PoetFilter.Classic) add(contemporaryState to contemporary::reload)
+                if (filter != PoetFilter.Contemporary) add(classicState to classic::reload)
+            }
+            val firstError = sources.firstOrNull { it.first is Loadable.Error }
+            when {
+                sources.all { it.first is Loadable.Loading } -> LoadingBox()
+                sources.none { it.first is Loadable.Ready } && firstError != null ->
+                    ErrorBox((firstError.first as Loadable.Error).message, onRetry = firstError.second)
+                else -> {
                     val needle = query.normalizeForSearch()
-                    val groups = remember(s.value, needle) { filterGroups(s.value, needle) }
-                    if (groups.isEmpty()) {
+                    val groups = sources.flatMap { (state, _) -> (state as? Loadable.Ready)?.value.orEmpty() }
+                    val filtered = remember(groups, needle) { filterGroups(groups, needle) }
+                    if (filtered.isEmpty()) {
                         MessageBox(Icons.Filled.SearchOff, "شاعری با این نام پیدا نشد")
                     } else {
-                        PoetGrid(groups, onOpenPoet)
+                        PoetGrid(filtered, onOpenPoet)
                     }
                 }
             }
@@ -101,7 +133,7 @@ private fun filterGroups(groups: List<PoetGroup>, needle: String): List<PoetGrou
 }
 
 @Composable
-private fun PoetGrid(groups: List<PoetGroup>, onOpenPoet: (Int) -> Unit) {
+private fun PoetGrid(groups: List<PoetGroup>, onOpenPoet: (String) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 300.dp),
         contentPadding = PaddingValues(bottom = 24.dp),
@@ -111,8 +143,8 @@ private fun PoetGrid(groups: List<PoetGroup>, onOpenPoet: (Int) -> Unit) {
             item(key = "h-${group.title}", span = { GridItemSpan(maxLineSpan) }) {
                 SectionTitle("${group.title} · ${group.poets.size.toPersianDigits()} شاعر")
             }
-            items(group.poets, key = { "${group.title}-${it.id}" }) { poet ->
-                PoetRow(poet, onClick = { onOpenPoet(poet.id) })
+            items(group.poets, key = { "${group.title}-${it.key}" }) { poet ->
+                PoetRow(poet, onClick = { onOpenPoet(poet.key) })
             }
         }
     }
@@ -122,7 +154,8 @@ private fun PoetGrid(groups: List<PoetGroup>, onOpenPoet: (Int) -> Unit) {
 fun PoetRow(poet: Poet, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(poet.name) },
-        supportingContent = hijriLifespan(poet.birthYear, poet.deathYear)?.let { { Text(it) } },
+        supportingContent = (hijriLifespan(poet.birthYear, poet.deathYear) ?: poet.group?.takeIf { poet.birthYear == null })
+            ?.let { { Text(it) } },
         leadingContent = { PoetAvatar(poet.name, poet.imageUrl, 48.dp) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick),

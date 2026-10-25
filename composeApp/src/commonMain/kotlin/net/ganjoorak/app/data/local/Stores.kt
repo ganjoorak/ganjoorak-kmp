@@ -10,25 +10,30 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import net.ganjoorak.app.data.Poem
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.SavedPoem
 import net.ganjoorak.app.data.remote.GanjoorJson
 
 enum class ThemeMode { System, Light, Dark, Paper }
 
-enum class PoemFont { Vazirmatn, Samim, Shabnam, Gandom }
+enum class PoemFont { Vazirmatn, Samim, Tanha, Shabnam, Gandom, Parastoo, Sahel, Nahid }
 
 enum class CoupletLayout { Auto, Stacked, SideBySide }
 
+/** A poet whose poems appear in the home feed; [key] is a [net.ganjoorak.app.data.Poet.key]. */
+@Serializable
+data class FollowedPoet(val key: String, val name: String)
+
 @Serializable
 data class AppSettings(
-    val theme: ThemeMode = ThemeMode.System,
+    val theme: ThemeMode = ThemeMode.Dark,
     val poemFont: PoemFont = PoemFont.Vazirmatn,
     val fontScale: Float = 1f,
     val coupletLayout: CoupletLayout = CoupletLayout.Auto,
     val showVerseNumbers: Boolean = false,
     val autoScrollWithAudio: Boolean = true,
-    val feedPoetId: Int? = null,
-    val feedPoetName: String? = null,
+    /** Empty means random poems from all of Ganjoor, like the website. */
+    val followedPoets: List<FollowedPoet> = emptyList(),
 )
 
 /** A JSON value persisted in [Settings] and mirrored as a [StateFlow]. */
@@ -65,19 +70,17 @@ class LibraryStore(settings: Settings) {
     val savedPoems: StateFlow<List<SavedPoem>> = saved.flow
     val recentSearches: StateFlow<List<String>> = recent.flow
 
-    fun isSaved(id: Int): Boolean = saved.flow.value.any { it.id == id }
-
     fun toggleSaved(poem: Poem) {
         saved.update { list ->
-            if (list.any { it.id == poem.id }) {
-                list.filterNot { it.id == poem.id }
+            if (list.any { it.ref == poem.ref }) {
+                list.filterNot { it.ref == poem.ref }
             } else {
-                listOf(SavedPoem(poem.id, poem.title, poem.poetName, poem.excerpt)) + list
+                listOf(SavedPoem(poem.id, poem.title, poem.poetName, poem.excerpt, poem.source, poem.ref.poetSlug)) + list
             }
         }
     }
 
-    fun remove(id: Int) = saved.update { list -> list.filterNot { it.id == id } }
+    fun remove(ref: PoemRef) = saved.update { list -> list.filterNot { it.ref == ref } }
 
     fun addRecentSearch(term: String) {
         val clean = term.trim()

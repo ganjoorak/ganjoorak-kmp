@@ -23,3 +23,12 @@ expect fun createAudioPlayer(): AudioPlayer
 expect fun shareText(text: String, title: String): Boolean
 
 expect fun copyText(text: String)
+
+/** PNG bytes of [image]. */
+expect fun encodePng(image: androidx.compose.ui.graphics.ImageBitmap): ByteArray
+
+/**
+ * Hands a PNG to the system: the share sheet on Android, a save dialog on desktop.
+ * Returns a message to show the user, or null when the system UI takes over.
+ */
+expect fun shareImage(png: ByteArray, fileName: String): String?

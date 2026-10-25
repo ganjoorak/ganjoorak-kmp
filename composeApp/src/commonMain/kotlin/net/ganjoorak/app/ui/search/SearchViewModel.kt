@@ -78,9 +78,9 @@ class SearchViewModel(
                 val page = repository.search(request.query, current.page + 1)
                 if (requests.value != request) return@launch
                 _state.update { state ->
-                    val known = state.hits.mapTo(HashSet()) { it.poemId }
+                    val known = state.hits.mapTo(HashSet()) { it.ref }
                     state.copy(
-                        hits = state.hits + page.hits.filter { it.poemId !in known },
+                        hits = state.hits + page.hits.filter { it.ref !in known },
                         page = page.page,
                         hasNext = page.hasNext && page.hits.isNotEmpty(),
                         loadingMore = false,

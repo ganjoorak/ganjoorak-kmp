@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.Category
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.Loadable
 import net.ganjoorak.app.ui.components.LoadingBox
@@ -40,8 +41,8 @@ import net.ganjoorak.app.ui.components.rememberLoader
 fun CategoryScreen(
     categoryId: Int,
     onBack: () -> Unit,
-    onOpenPoem: (Int) -> Unit,
-    onOpenPoet: (Int) -> Unit,
+    onOpenPoem: (PoemRef) -> Unit,
+    onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
 ) {
     val graph = AppGraph.instance
@@ -73,8 +74,8 @@ fun CategoryScreen(
 @Composable
 private fun CategoryContent(
     category: Category,
-    onOpenPoem: (Int) -> Unit,
-    onOpenPoet: (Int) -> Unit,
+    onOpenPoem: (PoemRef) -> Unit,
+    onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize().widthIn(max = 840.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -88,7 +89,7 @@ private fun CategoryContent(
                         val poet = category.poet
                         AssistChip(
                             onClick = {
-                                if (poet != null && ancestor.id == poet.rootCatId) onOpenPoet(poet.id) else onOpenCategory(ancestor.id)
+                                if (poet != null && ancestor.id == poet.rootCatId) onOpenPoet(poet.key) else onOpenCategory(ancestor.id)
                             },
                             label = { Text(ancestor.title) },
                         )

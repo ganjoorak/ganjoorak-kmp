@@ -24,11 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.player.PlayerController
 
 /** Compact now-playing bar shown above the navigation while a recitation is loaded. */
 @Composable
-fun MiniPlayer(player: PlayerController, onOpenPoem: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier: Modifier = Modifier) {
     val state by player.state.collectAsState()
     AnimatedVisibility(visible = state.isActive, modifier = modifier) {
         Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 2.dp) {
@@ -51,7 +52,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (Int) -> Unit, modifier: Mo
                     Column(
                         Modifier
                             .weight(1f)
-                            .clickable { state.poemId?.let(onOpenPoem) }
+                            .clickable { state.poemRef?.let(onOpenPoem) }
                             .padding(vertical = 8.dp),
                     ) {
                         Text(

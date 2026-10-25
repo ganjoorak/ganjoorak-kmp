@@ -13,23 +13,25 @@ import kotlinx.coroutines.launch
 import net.ganjoorak.app.data.GanjoorException
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemRepository
-import net.ganjoorak.app.data.Poet
+import net.ganjoorak.app.data.local.FollowedPoet
 import net.ganjoorak.app.data.local.SettingsStore
 
 data class FeedState(
     val poems: List<Poem> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
-    val poetId: Int? = null,
-    val poetName: String? = null,
+    val followed: List<FollowedPoet> = emptyList(),
     /** Bumped whenever the feed restarts so the pager can jump back to the top. */
     val generation: Int = 0,
 )
 
-/** Endless feed of random poems, optionally limited to one poet, loaded a few pages ahead. */
+/**
+ * Endless feed of random poems, loaded a few pages ahead. Like the website, each poem comes from a
+ * random poet among the followed ones, or from all of Ganjoor when none are followed.
+ */
 class FeedViewModel(
     private val repository: PoemRepository,
-    private val settings: SettingsStore,
+    settings: SettingsStore,
 ) : ViewModel() {
     private val _state = MutableStateFlow(FeedState())
     val state: StateFlow<FeedState> = _state.asStateFlow()
@@ -39,9 +41,9 @@ class FeedViewModel(
     init {
         viewModelScope.launch {
             settings.settings
-                .map { it.feedPoetId to it.feedPoetName }
+                .map { it.followedPoets }
                 .distinctUntilChanged()
-                .collect { (id, name) -> restart(id, name) }
+                .collect { restart(it) }
         }
     }
 
@@ -55,14 +57,12 @@ class FeedViewModel(
         ensureLoaded()
     }
 
-    fun refresh() = restart(_state.value.poetId, _state.value.poetName)
+    fun refresh() = restart(_state.value.followed)
 
-    fun setPoet(poet: Poet?) = settings.update { it.copy(feedPoetId = poet?.id, feedPoetName = poet?.name) }
-
-    private fun restart(poetId: Int?, poetName: String?) {
+    private fun restart(followed: List<FollowedPoet>) {
         job?.cancel()
         visibleIndex = 0
-        _state.update { FeedState(poetId = poetId, poetName = poetName, generation = it.generation + 1) }
+        _state.update { FeedState(followed = followed, generation = it.generation + 1) }
         ensureLoaded()
     }
 
@@ -74,8 +74,9 @@ class FeedViewModel(
             var duplicates = 0
             try {
                 while (_state.value.poems.size <= visibleIndex + PREFETCH && duplicates < MAX_DUPLICATES) {
-                    val poem = repository.randomPoem(_state.value.poetId)
-                    if (_state.value.poems.any { it.id == poem.id }) {
+                    val followed = _state.value.followed
+                    val poem = repository.randomPoem(followed.randomOrNull()?.key)
+                    if (_state.value.poems.any { it.ref == poem.ref }) {
                         duplicates++
                     } else {
                         _state.update { it.copy(poems = it.poems + poem) }

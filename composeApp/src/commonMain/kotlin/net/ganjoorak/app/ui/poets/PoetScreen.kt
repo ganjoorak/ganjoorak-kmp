@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,7 +53,9 @@ import kotlinx.coroutines.launch
 import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.CategoryRef
 import net.ganjoorak.app.data.GanjoorException
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoemSummary
+import net.ganjoorak.app.data.local.FollowedPoet
 import net.ganjoorak.app.data.PoetDetail
 import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.Loadable
@@ -64,15 +67,15 @@ import net.ganjoorak.app.util.hijriLifespan
 
 @Composable
 fun PoetScreen(
-    poetId: Int,
+    poetKey: String,
     onBack: () -> Unit,
-    onOpenPoem: (Int) -> Unit,
+    onOpenPoem: (PoemRef) -> Unit,
     onOpenCategory: (Int) -> Unit,
-    onReadInFeed: () -> Unit,
 ) {
     val graph = AppGraph.instance
-    val loader = rememberLoader("poet-$poetId") { graph.repository.poet(poetId) }
+    val loader = rememberLoader("poet-$poetKey") { graph.repository.poet(poetKey) }
     val state by loader.state.collectAsState()
+    val settings by graph.settings.settings.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var loadingRandom by remember { mutableStateOf(false) }
@@ -101,7 +104,7 @@ fun PoetScreen(
                         loadingRandom = true
                         scope.launch {
                             try {
-                                onOpenPoem(graph.repository.randomPoem(s.value.poet.id).id)
+                                onOpenPoem(graph.repository.randomPoem(s.value.poet.key).ref)
                             } catch (e: GanjoorException) {
                                 snackbar.showSnackbar(e.message ?: "")
                             } finally {
@@ -109,9 +112,19 @@ fun PoetScreen(
                             }
                         }
                     },
-                    onReadInFeed = {
-                        graph.settings.update { it.copy(feedPoetId = s.value.poet.id, feedPoetName = s.value.poet.name) }
-                        onReadInFeed()
+                    followed = settings.followedPoets.any { it.key == s.value.poet.key },
+                    onToggleFollow = {
+                        val poet = s.value.poet
+                        graph.settings.update { current ->
+                            val list = current.followedPoets
+                            current.copy(
+                                followedPoets = if (list.any { it.key == poet.key }) {
+                                    list.filterNot { it.key == poet.key }
+                                } else {
+                                    list + FollowedPoet(poet.key, poet.name)
+                                },
+                            )
+                        }
                     },
                     onOpenPoem = onOpenPoem,
                     onOpenCategory = onOpenCategory,
@@ -126,8 +139,9 @@ private fun PoetContent(
     detail: PoetDetail,
     loadingRandom: Boolean,
     onRandom: () -> Unit,
-    onReadInFeed: () -> Unit,
-    onOpenPoem: (Int) -> Unit,
+    followed: Boolean,
+    onToggleFollow: () -> Unit,
+    onOpenPoem: (PoemRef) -> Unit,
     onOpenCategory: (Int) -> Unit,
 ) {
     val poet = detail.poet
@@ -155,9 +169,9 @@ private fun PoetContent(
                         }
                         Text("شعر تصادفی", modifier = Modifier.padding(start = 8.dp))
                     }
-                    OutlinedButton(onClick = onReadInFeed) {
-                        Icon(Icons.Filled.Home, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("خواندن در خانه", modifier = Modifier.padding(start = 8.dp))
+                    OutlinedButton(onClick = onToggleFollow) {
+                        Icon(if (followed) Icons.Filled.Check else Icons.Filled.Home, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(if (followed) "در صفحه اصلی" else "افزودن به صفحه اصلی", modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -200,15 +214,15 @@ fun LazyListScope.categoryItems(categories: List<CategoryRef>, onOpenCategory: (
     }
 }
 
-fun LazyListScope.poemItems(poems: List<PoemSummary>, onOpenPoem: (Int) -> Unit) {
+fun LazyListScope.poemItems(poems: List<PoemSummary>, onOpenPoem: (PoemRef) -> Unit) {
     if (poems.isEmpty()) return
     item(key = "poems-title") { SectionTitle("اشعار") }
-    items(poems, key = { "p${it.id}" }) { poem ->
+    items(poems, key = { "p${it.ref.key}" }) { poem ->
         ListItem(
             headlineContent = { Text(poem.title) },
             supportingContent = poem.excerpt?.let { { Text(it, maxLines = 2, overflow = TextOverflow.Ellipsis) } },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            modifier = Modifier.clickable { onOpenPoem(poem.id) },
+            modifier = Modifier.clickable { onOpenPoem(poem.ref) },
         )
     }
 }

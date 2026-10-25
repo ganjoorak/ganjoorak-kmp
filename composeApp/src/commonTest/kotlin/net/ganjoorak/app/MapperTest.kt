@@ -55,7 +55,9 @@ class MapperTest {
         assertNull(poem.previousId)
         assertEquals(listOf(1, 2, 3, 4), poem.verses.map { it.order })
         assertEquals(listOf("A", "B"), poem.recitations.map { it.artist })
-        assertEquals("https://ganjoor.net/hafez/ghazal/sh1", poem.webUrl)
+        assertEquals("https://ganjoor.net/hafez/ghazal/sh1", poem.link)
+        assertEquals("https://ganjoorak.ir/poem/2130", poem.shareUrl)
+        assertEquals("ganjoor:2", poem.poetKey)
 
         assertEquals(3, poem.blocks.size)
         val couplet = assertIs<PoemBlock.Couplet>(poem.blocks[0])

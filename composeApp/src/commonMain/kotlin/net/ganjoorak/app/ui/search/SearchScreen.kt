@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AssistChip
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import net.ganjoorak.app.AppGraph
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.SearchHit
 import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.MessageBox
@@ -64,7 +66,7 @@ import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.util.toPersianDigits
 
 @Composable
-fun SearchScreen(onOpenPoem: (Int) -> Unit) {
+fun SearchScreen(onOpenMenu: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
     val graph = AppGraph.instance
     val vm = viewModel { SearchViewModel(graph.repository, graph.library) }
     val state by vm.state.collectAsState()
@@ -73,7 +75,12 @@ fun SearchScreen(onOpenPoem: (Int) -> Unit) {
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { TopAppBar(title = { Text("جستجو") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("جستجو") },
+                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
+            )
+        },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding), horizontalAlignment = Alignment.CenterHorizontally) {
             Column(Modifier.widthIn(max = 840.dp).padding(horizontal = 16.dp)) {
@@ -127,7 +134,7 @@ fun SearchScreen(onOpenPoem: (Int) -> Unit) {
                         onLoadMore = vm::loadMore,
                         onOpen = { hit ->
                             vm.saveRecent()
-                            onOpenPoem(hit.poemId)
+                            onOpenPoem(hit.ref)
                         },
                     )
                 }
@@ -183,7 +190,7 @@ private fun Results(state: SearchState, onLoadMore: () -> Unit, onOpen: (SearchH
                     )
                 }
             }
-            items(state.hits, key = { it.poemId }) { hit ->
+            items(state.hits, key = { it.ref.key }) { hit ->
                 SearchHitRow(hit, if (state.mode == SearchMode.Text) state.query.trim() else "", onClick = { onOpen(hit) })
                 HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
             }

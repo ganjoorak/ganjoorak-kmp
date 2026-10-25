@@ -2,6 +2,10 @@ package net.ganjoorak.app.data
 
 import kotlinx.serialization.Serializable
 
+/** Where a poet's poems come from: the Ganjoor API, the Echolalia archive or the bundled collections. */
+@Serializable
+enum class PoetSource { Ganjoor, Echolalia, Local }
+
 data class Poet(
     val id: Int,
     val name: String,
@@ -14,13 +18,43 @@ data class Poet(
     val deathYear: Int?,
     val birthPlace: String?,
     val deathPlace: String?,
-)
+    val source: PoetSource = PoetSource.Ganjoor,
+    /** Echolalia/local grouping such as «شاعران عرب»; null for Ganjoor (grouped by century). */
+    val group: String? = null,
+) {
+    /** Stable identifier across sources, used for routes and the home-feed selection. */
+    val key: String get() = PoetKey(source, if (source == PoetSource.Ganjoor) id.toString() else slug).value
+}
+
+/** `ganjoor:<id>`, `echolalia:<slug>` or `local:<slug>`. */
+data class PoetKey(val source: PoetSource, val ref: String) {
+    val value: String get() = "${source.name.lowercase()}:$ref"
+
+    companion object {
+        fun parse(value: String): PoetKey? {
+            val source = when (value.substringBefore(':')) {
+                "ganjoor" -> PoetSource.Ganjoor
+                "echolalia" -> PoetSource.Echolalia
+                "local" -> PoetSource.Local
+                else -> return null
+            }
+            val ref = value.substringAfter(':', "")
+            return if (ref.isEmpty()) null else PoetKey(source, ref)
+        }
+    }
+}
 
 data class PoetGroup(val title: String, val poets: List<Poet>)
 
 data class CategoryRef(val id: Int, val title: String)
 
-data class PoemSummary(val id: Int, val title: String, val excerpt: String?)
+/** Identifies a poem across sources; [poetSlug] is needed for local poems, whose ids are per poet. */
+@Serializable
+data class PoemRef(val source: PoetSource, val id: Int, val poetSlug: String = "") {
+    val key: String get() = "${source.name.lowercase()}:$poetSlug:$id"
+}
+
+data class PoemSummary(val ref: PoemRef, val title: String, val excerpt: String?)
 
 data class Category(
     val id: Int,
@@ -54,7 +88,7 @@ enum class VersePosition {
 
 data class Verse(val order: Int, val position: VersePosition, val text: String)
 
-/** A visual unit of a poem: a couplet (beyt), a band line, a free-verse line or prose. */
+/** A visual unit of a poem: a couplet (beyt), a band line, a free-verse line, prose or a stanza break. */
 sealed interface PoemBlock {
     val verses: List<Verse>
 
@@ -75,6 +109,10 @@ sealed interface PoemBlock {
     data class Note(val verse: Verse) : PoemBlock {
         override val verses get() = listOf(verse)
     }
+
+    data object Break : PoemBlock {
+        override val verses get() = emptyList<Verse>()
+    }
 }
 
 data class Recitation(
@@ -86,11 +124,13 @@ data class Recitation(
 )
 
 data class Poem(
-    val id: Int,
+    val ref: PoemRef,
     val title: String,
     val fullTitle: String,
-    val fullUrl: String,
+    /** Page of the poem at its source (ganjoor.net, echolalia.ir or the original publication). */
+    val link: String,
     val poetId: Int?,
+    val poetKey: String?,
     val poetName: String,
     val poetImageUrl: String?,
     val breadcrumbs: List<CategoryRef>,
@@ -101,7 +141,15 @@ data class Poem(
     val nextId: Int?,
     val summary: String?,
 ) {
-    val webUrl: String get() = "https://ganjoor.net$fullUrl"
+    val id: Int get() = ref.id
+    val source: PoetSource get() = ref.source
+
+    /** The poem on the Ganjoorak website, used for shared links. */
+    val shareUrl: String
+        get() = when (source) {
+            PoetSource.Ganjoor -> "https://ganjoorak.ir/poem/$id"
+            else -> "https://ganjoorak.ir/${ref.poetSlug}/$id"
+        }
 
     /** Plain text suitable for sharing/copying: hemistichs of a couplet share a line. */
     fun shareText(): String = buildString {
@@ -114,17 +162,18 @@ data class Poem(
                     block.second?.let { appendLine(it.text) }
                     appendLine()
                 }
+                is PoemBlock.Break -> appendLine()
                 else -> block.verses.forEach { appendLine(it.text) }
             }
         }
-        append(webUrl)
+        append(shareUrl)
     }.trim()
 
     val excerpt: String get() = verses.take(2).joinToString(" / ") { it.text }
 }
 
 data class SearchHit(
-    val poemId: Int,
+    val ref: PoemRef,
     val title: String,
     val poetName: String,
     val breadcrumb: String?,
@@ -141,4 +190,8 @@ data class SavedPoem(
     val title: String,
     val poetName: String,
     val excerpt: String,
-)
+    val source: PoetSource = PoetSource.Ganjoor,
+    val poetSlug: String = "",
+) {
+    val ref: PoemRef get() = PoemRef(source, id, poetSlug)
+}

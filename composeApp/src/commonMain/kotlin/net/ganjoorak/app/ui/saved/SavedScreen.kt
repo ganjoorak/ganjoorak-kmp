@@ -10,7 +10,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,41 +29,45 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.AppGraph
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.ui.components.MessageBox
 import net.ganjoorak.app.util.toPersianDigits
 
 @Composable
-fun SavedScreen(onOpenPoem: (Int) -> Unit) {
+fun SavedScreen(onOpenMenu: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
     val library = AppGraph.instance.library
     val saved by library.savedPoems.collectAsState()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            TopAppBar(title = { Text(if (saved.isEmpty()) "نشان‌شده‌ها" else "نشان‌شده‌ها (${saved.size.toPersianDigits()})") })
+            TopAppBar(
+                title = { Text(if (saved.isEmpty()) "نشان‌شده‌ها" else "نشان‌شده‌ها (${saved.size.toPersianDigits()})") },
+                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
+            )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             if (saved.isEmpty()) {
                 MessageBox(
-                    Icons.Filled.BookmarkBorder,
-                    "هنوز شعری نشان نکرده‌اید",
-                    body = "با زدن نشانک روی هر شعر، آن را این‌جا نگه دارید تا بدون جستجو به آن برگردید",
+                    Icons.Filled.FavoriteBorder,
+                    "هنوز شعری ذخیره نکرده‌اید",
+                    body = "با زدن قلب روی هر شعر، آن را این‌جا نگه دارید تا بدون جستجو به آن برگردید",
                 )
             } else {
                 LazyColumn(Modifier.widthIn(max = 840.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-                    items(saved, key = { it.id }) { poem ->
+                    items(saved, key = { it.ref.key }) { poem ->
                         ListItem(
                             overlineContent = { Text(poem.poetName) },
                             headlineContent = { Text(poem.title) },
                             supportingContent = { Text(poem.excerpt, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                             trailingContent = {
-                                IconButton(onClick = { library.remove(poem.id) }) {
+                                IconButton(onClick = { library.remove(poem.ref) }) {
                                     Icon(Icons.Outlined.Delete, contentDescription = "حذف")
                                 }
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable { onOpenPoem(poem.id) },
+                            modifier = Modifier.clickable { onOpenPoem(poem.ref) },
                         )
                     }
                 }
