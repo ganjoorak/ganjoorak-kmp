@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -81,6 +82,7 @@ fun FeedScreen(
     onOpenPoem: (PoemRef) -> Unit,
     onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val graph = AppGraph.instance
     val vm = viewModel { FeedViewModel(graph.repository, graph.settings) }
@@ -126,6 +128,9 @@ fun FeedScreen(
                     }
                     IconButton(onClick = vm::refresh) {
                         Icon(Icons.Filled.Refresh, contentDescription = "شعرهای تازه")
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "تنظیمات")
                     }
                 },
             )

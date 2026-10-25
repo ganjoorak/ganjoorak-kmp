@@ -15,11 +15,9 @@ import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.People
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -89,7 +87,6 @@ private enum class Tab(
     Poets(PoetsRoute, { it.hasRoute<PoetsRoute>() }, "شاعران", Icons.Outlined.People, Icons.Filled.People),
     Search(SearchRoute, { it.hasRoute<SearchRoute>() }, "جستجو", Icons.Filled.Search, Icons.Filled.Search),
     Saved(SavedRoute, { it.hasRoute<SavedRoute>() }, "نشان‌ها", Icons.Outlined.Bookmarks, Icons.Filled.Bookmarks),
-    Settings(SettingsRoute, { it.hasRoute<SettingsRoute>() }, "تنظیمات", Icons.Outlined.Settings, Icons.Filled.Settings),
 }
 
 /** Root composable shared by every platform. */
@@ -174,11 +171,18 @@ private fun AppNavHost(nav: NavHostController, openPoem: (PoemRef) -> Unit) {
     val back: () -> Unit = { nav.popBackStack() }
 
     NavHost(navController = nav, startDestination = FeedRoute) {
-        composable<FeedRoute> { FeedScreen(onOpenPoem = openPoem, onOpenPoet = openPoet, onOpenCategory = openCategory) }
+        composable<FeedRoute> {
+            FeedScreen(
+                onOpenPoem = openPoem,
+                onOpenPoet = openPoet,
+                onOpenCategory = openCategory,
+                onOpenSettings = { nav.navigate(SettingsRoute) },
+            )
+        }
         composable<PoetsRoute> { PoetsScreen(onOpenPoet = openPoet) }
         composable<SearchRoute> { SearchScreen(onOpenPoem = openPoem) }
         composable<SavedRoute> { SavedScreen(onOpenPoem = openPoem) }
-        composable<SettingsRoute> { SettingsScreen() }
+        composable<SettingsRoute> { SettingsScreen(onBack = { nav.popBackStack() }) }
         composable<PoemRoute> { entry ->
             PoemScreen(
                 ref = entry.toRoute<PoemRoute>().ref,

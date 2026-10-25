@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.IconButton
@@ -60,7 +61,7 @@ private val SamplePreview = PoemBlock.Couplet(
 )
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onBack: () -> Unit) {
     val store = AppGraph.instance.settings
     val settings by store.settings.collectAsState()
     val uriHandler = LocalUriHandler.current
@@ -70,6 +71,7 @@ fun SettingsScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("تنظیمات") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "بازگشت") } },
             )
         },
     ) { padding ->
