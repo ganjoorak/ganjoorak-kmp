@@ -15,6 +15,16 @@ tap() {
   if [ $# -eq 4 ]; then adb shell input tap $(( ($1 + $3) / 2 )) $(( ($2 + $4) / 2 )); else echo "(nothing labelled to tap)"; fi
 }
 
+# The emulator's launcher sometimes raises an "isn't responding" dialog over the app; wait it out.
+dismiss_anr() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  if adb shell cat /sdcard/ui.xml | grep -q "isn't responding"; then
+    echo "(dismissing a system 'not responding' dialog)"
+    tap "Wait"
+    sleep 2
+  fi
+}
+
 # Prints the screen as base64 PNG between markers.
 shot() {
   adb exec-out screencap -p > /tmp/shot.png
@@ -60,6 +70,7 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   adb logcat -d | grep -E "Ganjoorak:" | head -20
   echo "--- errors"
   adb logcat -d '*:E' | grep -iE "ganjoorak|AndroidRuntime|FATAL|Exception" | head -100
+  dismiss_anr
   echo "--- on screen"
   # Wait up to a minute for the feed to show a poem or an error; chrome alone is about 9 nodes.
   for i in $(seq 1 12); do
@@ -81,12 +92,15 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   echo "--- uiautomator says"
   adb shell uiautomator dump /sdcard/ui2.xml 2>&1 | tail -2
   echo "--- screenshot (base64 png)"
+  dismiss_anr
   shot "$name"
   if [[ "$name" == *release* ]]; then
     for tab in "شاعران" "پروفایل"; do
       echo "--- tab $tab"
+      dismiss_anr
       tap "$tab"
       sleep 12
+      dismiss_anr
       adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml \
         | grep -oE '(text|content-desc)="[^"]+"' | head -30
       shot "$name-$tab"
