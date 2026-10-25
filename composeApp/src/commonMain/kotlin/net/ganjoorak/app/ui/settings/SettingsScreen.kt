@@ -60,7 +60,7 @@ private val SamplePreview = PoemBlock.Couplet(
 )
 
 @Composable
-fun SettingsScreen(onOpenMenu: () -> Unit) {
+fun SettingsScreen() {
     val store = AppGraph.instance.settings
     val settings by store.settings.collectAsState()
     val uriHandler = LocalUriHandler.current
@@ -70,7 +70,6 @@ fun SettingsScreen(onOpenMenu: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("تنظیمات") },
-                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
             )
         },
     ) { padding ->
@@ -87,11 +86,11 @@ fun SettingsScreen(onOpenMenu: () -> Unit) {
 
                 SectionTitle("پوسته")
                 ChipRow(
-                    options = listOf(ThemeMode.Dark, ThemeMode.Light, ThemeMode.Paper, ThemeMode.System),
+                    options = listOf(ThemeMode.System, ThemeMode.Light, ThemeMode.Dark, ThemeMode.Paper),
                     selected = settings.theme,
                     label = {
                         when (it) {
-                            ThemeMode.Dark -> "تاریک"
+                            ThemeMode.Dark -> "تیره"
                             ThemeMode.Light -> "روشن"
                             ThemeMode.Paper -> "کاغذی"
                             ThemeMode.System -> "هماهنگ با دستگاه"

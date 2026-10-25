@@ -57,7 +57,7 @@ import net.ganjoorak.app.util.toPersianDigits
 private enum class PoetFilter(val label: String) { All("همه"), Classic("کهن (گنجور)"), Contemporary("معاصر و جهان") }
 
 @Composable
-fun PoetsScreen(onOpenMenu: () -> Unit, onOpenPoet: (String) -> Unit) {
+fun PoetsScreen(onOpenPoet: (String) -> Unit) {
     val repository = AppGraph.instance.repository
     val classic = rememberLoader("poet-groups") { repository.poetGroups() }
     val contemporary = rememberLoader("contemporary-groups") { repository.contemporaryGroups() }
@@ -71,7 +71,6 @@ fun PoetsScreen(onOpenMenu: () -> Unit, onOpenPoet: (String) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("شاعران") },
-                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
             )
         },
     ) { padding ->

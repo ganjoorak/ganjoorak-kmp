@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Icon
@@ -34,7 +34,7 @@ import net.ganjoorak.app.ui.components.MessageBox
 import net.ganjoorak.app.util.toPersianDigits
 
 @Composable
-fun SavedScreen(onOpenMenu: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
+fun SavedScreen(onOpenPoem: (PoemRef) -> Unit) {
     val library = AppGraph.instance.library
     val saved by library.savedPoems.collectAsState()
 
@@ -43,16 +43,15 @@ fun SavedScreen(onOpenMenu: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text(if (saved.isEmpty()) "نشان‌شده‌ها" else "نشان‌شده‌ها (${saved.size.toPersianDigits()})") },
-                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
             )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             if (saved.isEmpty()) {
                 MessageBox(
-                    Icons.Filled.FavoriteBorder,
-                    "هنوز شعری ذخیره نکرده‌اید",
-                    body = "با زدن قلب روی هر شعر، آن را این‌جا نگه دارید تا بدون جستجو به آن برگردید",
+                    Icons.Filled.BookmarkBorder,
+                    "هنوز شعری نشان نکرده‌اید",
+                    body = "با زدن نشانک روی هر شعر، آن را این‌جا نگه دارید تا بدون جستجو به آن برگردید",
                 )
             } else {
                 LazyColumn(Modifier.widthIn(max = 840.dp), contentPadding = PaddingValues(bottom = 24.dp)) {

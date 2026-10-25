@@ -1,24 +1,43 @@
 package net.ganjoorak.app
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.DrawerValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -32,14 +51,10 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.ui.feed.FeedScreen
-import net.ganjoorak.app.ui.menu.AppDrawer
-import net.ganjoorak.app.ui.menu.FeedPoetsSheet
-import net.ganjoorak.app.ui.menu.MenuDestination
 import net.ganjoorak.app.ui.player.MiniPlayer
 import net.ganjoorak.app.ui.poem.PoemScreen
 import net.ganjoorak.app.ui.poets.CategoryScreen
@@ -59,23 +74,22 @@ import net.ganjoorak.app.ui.theme.GanjoorakTheme
     val ref: PoemRef get() = PoemRef(source, id, poet)
 }
 @Serializable data class PoetRoute(val key: String)
-@Serializable data class CategoryRoute(val id: Int)
 
 private fun PoemRef.route() = PoemRoute(id, source, poetSlug)
+@Serializable data class CategoryRoute(val id: Int)
 
-private fun NavDestination.menuDestination(): MenuDestination? = when {
-    hasRoute<FeedRoute>() -> MenuDestination.Home
-    hasRoute<SearchRoute>() -> MenuDestination.Search
-    hasRoute<PoetsRoute>() -> MenuDestination.Poets
-    hasRoute<SavedRoute>() -> MenuDestination.Saved
-    else -> null
-}
-
-private fun MenuDestination.route(): Any = when (this) {
-    MenuDestination.Home -> FeedRoute
-    MenuDestination.Search -> SearchRoute
-    MenuDestination.Poets -> PoetsRoute
-    MenuDestination.Saved -> SavedRoute
+private enum class Tab(
+    val route: Any,
+    val matches: (NavDestination) -> Boolean,
+    val label: String,
+    val icon: ImageVector,
+    val selectedIcon: ImageVector,
+) {
+    Feed(FeedRoute, { it.hasRoute<FeedRoute>() }, "خانه", Icons.Outlined.Home, Icons.Filled.Home),
+    Poets(PoetsRoute, { it.hasRoute<PoetsRoute>() }, "شاعران", Icons.Outlined.People, Icons.Filled.People),
+    Search(SearchRoute, { it.hasRoute<SearchRoute>() }, "جستجو", Icons.Filled.Search, Icons.Filled.Search),
+    Saved(SavedRoute, { it.hasRoute<SavedRoute>() }, "نشان‌ها", Icons.Outlined.Bookmarks, Icons.Filled.Bookmarks),
+    Settings(SettingsRoute, { it.hasRoute<SettingsRoute>() }, "تنظیمات", Icons.Outlined.Settings, Icons.Filled.Settings),
 }
 
 /** Root composable shared by every platform. */
@@ -100,74 +114,75 @@ fun App() {
 private fun AppShell() {
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
-    val destination = entry?.destination
-    val drawer = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    var pickingFeedPoets by remember { mutableStateOf(false) }
-
-    val openMenu: () -> Unit = { scope.launch { drawer.open() } }
-    val closeMenuThen: (() -> Unit) -> Unit = { action ->
-        scope.launch { drawer.close() }
-        action()
+    var currentTab by rememberSaveable { mutableStateOf(Tab.Feed) }
+    LaunchedEffect(entry) {
+        val destination = entry?.destination ?: return@LaunchedEffect
+        Tab.entries.firstOrNull { it.matches(destination) }?.let { currentTab = it }
     }
-    val goTo: (Any) -> Unit = { route ->
-        nav.navigate(route) {
+    val selectTab: (Tab) -> Unit = { tab ->
+        currentTab = tab
+        nav.navigate(tab.route) {
             popUpTo(nav.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
     }
+    val player = AppGraph.instance.player
+    val openPoem: (PoemRef) -> Unit = { nav.navigate(it.route()) }
 
-    ModalNavigationDrawer(
-        drawerState = drawer,
-        drawerContent = {
-            AppDrawer(
-                current = destination?.menuDestination(),
-                onNavigate = { closeMenuThen { goTo(it.route()) } },
-                onOpenFeedPoets = { closeMenuThen { pickingFeedPoets = true } },
-                onOpenSettings = { closeMenuThen { goTo(SettingsRoute) } },
-                onClose = { scope.launch { drawer.close() } },
-            )
-        },
-    ) {
-        Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) {
-                AppNavHost(nav, openMenu = openMenu, openSearch = { goTo(SearchRoute) })
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        if (maxWidth >= 720.dp) {
+            Row(Modifier.fillMaxSize()) {
+                NavigationRail {
+                    Tab.entries.forEach { tab ->
+                        NavigationRailItem(
+                            selected = tab == currentTab,
+                            onClick = { selectTab(tab) },
+                            icon = { Icon(if (tab == currentTab) tab.selectedIcon else tab.icon, contentDescription = null) },
+                            label = { Text(tab.label) },
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f).windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))) {
+                    Box(Modifier.weight(1f)) { AppNavHost(nav, openPoem) }
+                    MiniPlayer(player, openPoem)
+                }
             }
-            val onPoemPage = destination?.let { it.hasRoute<FeedRoute>() || it.hasRoute<PoemRoute>() } ?: true
-            if (!onPoemPage) {
-                MiniPlayer(
-                    AppGraph.instance.player,
-                    onOpenPoem = { nav.navigate(it.route()) },
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                )
+        } else {
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f)) { AppNavHost(nav, openPoem) }
+                MiniPlayer(player, openPoem)
+                NavigationBar {
+                    Tab.entries.forEach { tab ->
+                        NavigationBarItem(
+                            selected = tab == currentTab,
+                            onClick = { selectTab(tab) },
+                            icon = { Icon(if (tab == currentTab) tab.selectedIcon else tab.icon, contentDescription = null) },
+                            label = { Text(tab.label) },
+                        )
+                    }
+                }
             }
         }
     }
-
-    if (pickingFeedPoets) FeedPoetsSheet(onDismiss = { pickingFeedPoets = false })
 }
 
 @Composable
-private fun AppNavHost(nav: NavHostController, openMenu: () -> Unit, openSearch: () -> Unit) {
-    val openPoem: (PoemRef) -> Unit = { nav.navigate(it.route()) }
+private fun AppNavHost(nav: NavHostController, openPoem: (PoemRef) -> Unit) {
     val openPoet: (String) -> Unit = { nav.navigate(PoetRoute(it)) }
     val openCategory: (Int) -> Unit = { nav.navigate(CategoryRoute(it)) }
     val back: () -> Unit = { nav.popBackStack() }
 
     NavHost(navController = nav, startDestination = FeedRoute) {
-        composable<FeedRoute> {
-            FeedScreen(onOpenMenu = openMenu, onOpenSearch = openSearch, onOpenPoet = openPoet, onOpenCategory = openCategory)
-        }
-        composable<PoetsRoute> { PoetsScreen(onOpenMenu = openMenu, onOpenPoet = openPoet) }
-        composable<SearchRoute> { SearchScreen(onOpenMenu = openMenu, onOpenPoem = openPoem) }
-        composable<SavedRoute> { SavedScreen(onOpenMenu = openMenu, onOpenPoem = openPoem) }
-        composable<SettingsRoute> { SettingsScreen(onOpenMenu = openMenu) }
+        composable<FeedRoute> { FeedScreen(onOpenPoem = openPoem, onOpenPoet = openPoet, onOpenCategory = openCategory) }
+        composable<PoetsRoute> { PoetsScreen(onOpenPoet = openPoet) }
+        composable<SearchRoute> { SearchScreen(onOpenPoem = openPoem) }
+        composable<SavedRoute> { SavedScreen(onOpenPoem = openPoem) }
+        composable<SettingsRoute> { SettingsScreen() }
         composable<PoemRoute> { entry ->
             PoemScreen(
                 ref = entry.toRoute<PoemRoute>().ref,
                 onBack = back,
-                onOpenSearch = openSearch,
                 // Stepping through next/previous replaces the current poem instead of growing the stack.
                 onOpenPoem = { ref -> nav.navigate(ref.route()) { popUpTo<PoemRoute> { inclusive = true } } },
                 onOpenPoet = openPoet,

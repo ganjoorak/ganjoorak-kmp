@@ -26,7 +26,7 @@ data class FollowedPoet(val key: String, val name: String)
 
 @Serializable
 data class AppSettings(
-    val theme: ThemeMode = ThemeMode.Dark,
+    val theme: ThemeMode = ThemeMode.System,
     val poemFont: PoemFont = PoemFont.Vazirmatn,
     val fontScale: Float = 1f,
     val coupletLayout: CoupletLayout = CoupletLayout.Auto,

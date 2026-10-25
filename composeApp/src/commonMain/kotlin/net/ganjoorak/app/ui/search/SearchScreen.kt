@@ -66,7 +66,7 @@ import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.util.toPersianDigits
 
 @Composable
-fun SearchScreen(onOpenMenu: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
+fun SearchScreen(onOpenPoem: (PoemRef) -> Unit) {
     val graph = AppGraph.instance
     val vm = viewModel { SearchViewModel(graph.repository, graph.library) }
     val state by vm.state.collectAsState()
@@ -78,7 +78,6 @@ fun SearchScreen(onOpenMenu: () -> Unit, onOpenPoem: (PoemRef) -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("جستجو") },
-                navigationIcon = { IconButton(onClick = onOpenMenu) { Icon(Icons.Filled.Menu, contentDescription = "منو") } },
             )
         },
     ) { padding ->
