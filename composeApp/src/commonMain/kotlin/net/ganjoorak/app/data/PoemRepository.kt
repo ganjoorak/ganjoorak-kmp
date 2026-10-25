@@ -172,8 +172,11 @@ class PoemRepository(
         if (e.response.status == HttpStatusCode.NotFound) throw GanjoorException("مورد درخواستی پیدا نشد", e)
         throw GanjoorException(failure, e)
     } catch (e: ServerResponseException) {
+        println("Ganjoorak: $failure: $e")
         throw GanjoorException("$failure. سرور پاسخ نمی‌دهد", e)
     } catch (e: Exception) {
+        // The user only sees a generic message; keep the real cause in the log.
+        println("Ganjoorak: $failure: $e")
         throw GanjoorException("$failure. اتصال اینترنت را بررسی کنید", e)
     }
 }

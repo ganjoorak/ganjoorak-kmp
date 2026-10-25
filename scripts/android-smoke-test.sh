@@ -4,6 +4,9 @@
 set -u
 pkg=net.ganjoorak.app
 status=0
+echo "--- emulator network"
+adb shell ping -c 1 -W 5 8.8.8.8 || echo "no IP connectivity"
+adb shell ping -c 1 -W 5 api.ganjoor.net || echo "api.ganjoor.net unreachable"
 for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/build/outputs/apk/release/androidApp-release.apk; do
   name=$(basename "$apk")
   echo "::group::$name"
@@ -25,6 +28,8 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   fi
   echo "--- crash buffer"
   adb logcat -d -b crash
+  echo "--- app log"
+  adb logcat -d | grep -E "Ganjoorak:" | head -20
   echo "--- errors"
   adb logcat -d '*:E' | grep -iE "ganjoorak|AndroidRuntime|FATAL|Exception" | head -100
   echo "--- on screen"
