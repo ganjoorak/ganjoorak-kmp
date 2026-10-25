@@ -45,13 +45,26 @@ for apk in androidApp/build/outputs/apk/debug/androidApp-debug.apk androidApp/bu
   echo "--- errors"
   adb logcat -d '*:E' | grep -iE "ganjoorak|AndroidRuntime|FATAL|Exception" | head -100
   echo "--- on screen"
-  if adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; then
-    adb shell cat /sdcard/ui.xml > /tmp/ui.xml
+  # Wait up to a minute for the feed to show a poem or an error; chrome alone is about 9 nodes.
+  for i in $(seq 1 12); do
+    adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml > /tmp/ui.xml
+    nodes=$(grep -oE '(text|content-desc)="[^"]+"' /tmp/ui.xml 2>/dev/null | wc -l)
+    { grep -q "ممکن نشد" /tmp/ui.xml || [ "$nodes" -gt 12 ]; } 2>/dev/null && break
+    sleep 5
+  done
+  if [ -f /tmp/ui.xml ]; then
     grep -oE '(text|content-desc)="[^"]+"' /tmp/ui.xml | head -60
-    grep -q "ممکن نشد" /tmp/ui.xml && echo "::warning::$name shows a loading error on the home screen"
+    if grep -q "ممکن نشد" /tmp/ui.xml; then
+      echo "::warning::$name shows a loading error on the home screen"
+    elif [ "$nodes" -le 12 ]; then
+      echo "::warning::$name showed no poem within a minute"
+    fi
   else
     echo "(screen dump unavailable)"
   fi
+  echo "--- app log after waiting"
+  adb logcat -d | grep -E "Ganjoorak:" | head -20
+  rm -f /tmp/ui.xml
   echo "::endgroup::"
 done
 exit $status
