@@ -10,6 +10,7 @@ import net.ganjoorak.app.data.toPoem
 import net.ganjoorak.app.data.toSearchHit
 import net.ganjoorak.app.player.activeVerseAt
 import net.ganjoorak.app.data.VerseTiming
+import kotlinx.serialization.decodeFromString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

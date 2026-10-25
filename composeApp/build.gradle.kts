@@ -9,8 +9,6 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
 }
 
-val appVersion = "1.0.0"
-
 kotlin {
     android {
         namespace = "net.ganjoorak.shared"
@@ -24,15 +22,14 @@ kotlin {
         compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
-    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
-        target.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
-
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
+        optIn.addAll(
+            "androidx.compose.material3.ExperimentalMaterial3Api",
+            "androidx.compose.foundation.layout.ExperimentalLayoutApi",
+            "kotlinx.coroutines.FlowPreview",
+            "kotlinx.coroutines.ExperimentalCoroutinesApi",
+        )
     }
 
     sourceSets {
@@ -66,10 +63,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.media3.exoplayer)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -90,17 +85,25 @@ compose.desktop {
         mainClass = "net.ganjoorak.app.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Ganjoorak"
-            packageVersion = appVersion
+            packageVersion = "1.0.0"
             description = "Persian poetry reader for Ganjoor"
             vendor = "Ganjoorak"
-            linux { iconFile.set(project.file("desktop-icons/icon.png")) }
+            linux {
+                iconFile.set(project.file("desktop-icons/icon.png"))
+                shortcut = true
+                packageName = "ganjoorak"
+                menuGroup = "Education"
+            }
             windows {
+                iconFile.set(project.file("desktop-icons/icon.ico"))
                 menuGroup = "Ganjoorak"
+                shortcut = true
+                dirChooser = true
+                perUserInstall = true
                 upgradeUuid = "6f1c3c2e-6a59-4c55-9a51-0d9d52e1a6b1"
             }
-            macOS { bundleID = "net.ganjoorak.app" }
         }
 
         buildTypes.release.proguard { isEnabled.set(false) }

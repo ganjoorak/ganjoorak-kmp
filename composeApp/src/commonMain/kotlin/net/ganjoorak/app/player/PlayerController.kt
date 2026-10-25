@@ -108,12 +108,11 @@ class PlayerController(
         _state.update { it.copy(positionMs = positionMs, activeVerseOrder = activeVerseAt(timings, positionMs)) }
     }
 
-    /** Jumps to the moment a verse is recited, when timings are known. Returns whether it could. */
-    fun seekToVerse(verseOrder: Int): Boolean {
-        val timing = timings.firstOrNull { it.verseOrder == verseOrder } ?: return false
+    /** Jumps to the moment a verse is recited; does nothing when timings are unknown. */
+    fun seekToVerse(verseOrder: Int) {
+        val timing = timings.firstOrNull { it.verseOrder == verseOrder } ?: return
         seekTo(timing.startMs)
         if (!_state.value.isPlaying) resume()
-        return true
     }
 
     fun stop() {

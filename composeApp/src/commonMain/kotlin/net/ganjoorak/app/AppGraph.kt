@@ -10,6 +10,8 @@ import net.ganjoorak.app.data.remote.createHttpClient
 import net.ganjoorak.app.platform.createAudioPlayer
 import net.ganjoorak.app.player.PlayerController
 
+const val APP_VERSION = "1.0.0"
+
 /** Hand-wired app singletons; small enough not to need a DI framework. */
 class AppGraph {
     private val scope = MainScope()

@@ -21,3 +21,5 @@ expect fun createAudioPlayer(): AudioPlayer
 
 /** Shares [text] through the system sheet. Returns false when it was copied to the clipboard instead. */
 expect fun shareText(text: String, title: String): Boolean
+
+expect fun copyText(text: String)

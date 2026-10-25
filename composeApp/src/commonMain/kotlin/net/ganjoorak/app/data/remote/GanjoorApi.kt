@@ -12,6 +12,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 const val GANJOOR_API_BASE_URL = "https://api.ganjoor.net"
