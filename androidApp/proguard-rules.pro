@@ -13,3 +13,7 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
 -dontwarn java.lang.management.**
+
+# Navigation resolves enum route arguments (PoetSource in PoemRoute) with Class.forName,
+# so enum names must survive minification.
+-keep enum net.ganjoorak.app.** { *; }
