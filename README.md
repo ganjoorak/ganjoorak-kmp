@@ -1,4 +1,12 @@
-# گنجورک — نسخهٔ بومی (Android، لینوکس، ویندوز)
+# ganjoorak-kmp
+
+کلاینت Kotlin Multiplatform گنجورک (اندروید و دسکتاپ).
+
+این ریپو همان برنچ `kmp` از [`hadi7546/ganjoorak-native`](https://github.com/hadi7546/ganjoorak-native) است، تحت سازمان [ganjoorak](https://github.com/ganjoorak).
+
+وب: [`ganjoorak/website`](https://github.com/ganjoorak/website) · مجوز: [AGPL-3.0](LICENSE)
+
+---
 
 A Kotlin Multiplatform + Compose Multiplatform client for [Ganjoor](https://ganjoor.net), sharing one codebase
 across Android and desktop (Linux, Windows).

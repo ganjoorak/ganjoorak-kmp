@@ -9,3 +9,6 @@ captures/
 xcuserdata/
 *.xcworkspace/xcuserdata/
 iosApp/build/
+**/build/
+*.apk
+*.aab
