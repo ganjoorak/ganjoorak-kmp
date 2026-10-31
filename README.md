@@ -6,7 +6,7 @@
 
 ---
 
-A Kotlin Multiplatform + Compose Multiplatform client for [Ganjoor](https://ganjoor.net), sharing one codebase
+A Kotlin Multiplatform + Compose Multiplatform client for [Ganjoorak](https://ganjoorak.ir), sharing one codebase
 across Android and desktop (Linux, Windows).
 
 ## Features
