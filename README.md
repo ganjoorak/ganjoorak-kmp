@@ -39,7 +39,8 @@ Requires JDK 17+ (21 recommended) and, for Android, the Android SDK.
 ./gradlew :composeApp:run                  # run the desktop app
 ./gradlew :androidApp:assembleDebug        # Android APK
 ./gradlew :composeApp:packageDeb           # Linux .deb (run on Linux)
+./gradlew :composeApp:packageAppImage && bash scripts/package-appimage.sh  # Linux AppImage
 ./gradlew :composeApp:packageMsi           # Windows .msi (run on Windows)
 ```
 
-CI (`.github/workflows/native-app.yml`) runs the tests and builds the APKs, the `.deb` and the `.msi` as artifacts.
+CI (`.github/workflows/build.yml`) runs the tests and builds the APKs, the `.deb`, the AppImage and the `.msi` as artifacts.

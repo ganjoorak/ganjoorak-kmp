@@ -83,7 +83,7 @@ compose.desktop {
         mainClass = "net.ganjoorak.app.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi, TargetFormat.Exe)
+            targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Ganjoorak"
             packageVersion = "1.0.0"
             description = "Persian poetry reader for Ganjoor"
