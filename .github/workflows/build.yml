@@ -26,8 +26,10 @@ jobs:
         run: ./gradlew :composeApp:desktopTest --stacktrace
       - name: Android APKs
         run: ./gradlew :androidApp:assembleDebug :androidApp:assembleRelease --stacktrace
-      - name: Linux package
-        run: ./gradlew :composeApp:packageDeb --stacktrace
+      - name: Linux packages
+        run: |
+          ./gradlew :composeApp:packageDeb :composeApp:packageAppImage --stacktrace
+          bash scripts/package-appimage.sh
       - uses: actions/upload-artifact@v4
         # Uploads can fail when the account's artifact storage is full; that shouldn't fail the build.
         continue-on-error: true
@@ -41,7 +43,9 @@ jobs:
         with:
           retention-days: 7
           name: ganjoorak-linux
-          path: composeApp/build/compose/binaries/main/deb/*.deb
+          path: |
+            composeApp/build/compose/binaries/main/deb/*.deb
+            composeApp/build/compose/binaries/main/appimage/*.AppImage
 
   android-launch:
     name: Android launch test
