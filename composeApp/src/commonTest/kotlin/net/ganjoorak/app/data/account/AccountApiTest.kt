@@ -5,6 +5,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -139,6 +140,42 @@ class AccountApiTest {
         val error = assertFailsWith<AccountException> { api.createQuote("ganjoor:hafez:1", 0, 1) }
         assertEquals("سقف ۲۰ نقل در روز پر شده است؛ فردا دوباره امتحان کنید.", error.message)
         assertEquals(429, error.status)
+    }
+
+    @Test
+    fun saveAccountDataPutsMergeFlagAndReturnsSanitizedUnion() = runTest {
+        var method: String? = null
+        var path: String? = null
+        var cookie: String? = null
+        var body: String? = null
+        val engine = MockEngine { request ->
+            method = request.method.value
+            path = request.url.encodedPath
+            cookie = request.headers[HttpHeaders.Cookie]
+            body = (request.body as TextContent).text
+            respond(
+                """{"data":{"favorites":[{"key":"custom:farrokhzad:12","id":12,"source":"custom","poetSlug":"farrokhzad","poetName":"فروغ","title":"تولدی دیگر","excerpt":"","href":"/farrokhzad/12","savedAt":8}],"history":[],"lovedCollections":[{"key":"ganjoor:hafez:cat:24","source":"ganjoor","categoryId":24,"poetSlug":"hafez","poetName":"حافظ","title":"غزلیات","href":"/hafez/cat/24","savedAt":5}],"preferredPoetKeys":["ganjoor:hafez","custom:farrokhzad"],"interestKeys":["ghazal"]}}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val api = AccountApi(HttpClient(engine), token = { "tok123" }, onSessionCookie = {})
+        val payload = AccountDataDto(
+            favorites = listOf(
+                LibraryEntryDto("custom:farrokhzad:12", 12, source = "custom", poetSlug = "farrokhzad", href = "/farrokhzad/12", savedAt = 8),
+            ),
+            preferredPoetKeys = listOf("custom:farrokhzad"),
+        )
+        val saved = api.saveAccountData(payload, merge = true)
+        assertEquals("PUT", method)
+        assertTrue(path!!.endsWith("/api/account/data"))
+        assertEquals("ganjoorak_session=tok123", cookie)
+        assertTrue(body!!.contains("\"merge\":true"))
+        assertTrue(body!!.contains("custom:farrokhzad:12"))
+        assertEquals("custom:farrokhzad:12", saved.favorites.single().key)
+        assertEquals("غزلیات", saved.lovedCollections.single().title)
+        assertEquals(listOf("ganjoor:hafez", "custom:farrokhzad"), saved.preferredPoetKeys)
+        assertEquals(listOf("ghazal"), saved.interestKeys)
     }
 
     private fun api(

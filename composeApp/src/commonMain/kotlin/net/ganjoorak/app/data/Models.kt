@@ -192,6 +192,8 @@ data class SavedPoem(
     val excerpt: String,
     val source: PoetSource = PoetSource.Ganjoor,
     val poetSlug: String = "",
+    /** Milliseconds since epoch; 0 means "unknown" and is filled when syncing. */
+    val savedAt: Long = 0,
 ) {
     val ref: PoemRef get() = PoemRef(source, id, poetSlug)
 }

@@ -9,6 +9,7 @@ import net.ganjoorak.app.data.PoemRepository
 import net.ganjoorak.app.data.account.ACCOUNT_API_BASE_URL
 import net.ganjoorak.app.data.account.AccountApi
 import net.ganjoorak.app.data.account.AccountRepository
+import net.ganjoorak.app.data.account.AccountSync
 import net.ganjoorak.app.data.account.StoriesRepository
 import net.ganjoorak.app.data.account.createAccountHttpClient
 import net.ganjoorak.app.data.local.LibraryStore
@@ -47,6 +48,18 @@ class AppGraph {
         scope = scope,
     )
     val stories = StoriesRepository(accounts, storage, scope)
+    val accountSync = AccountSync(
+        accounts = accounts,
+        library = library,
+        settingsStore = settings,
+        storage = storage,
+        poets = {
+            val classical = runCatching { repository.poetGroups() }.getOrDefault(emptyList()).flatMap { it.poets }
+            val contemporary = runCatching { repository.contemporaryGroups() }.getOrDefault(emptyList()).flatMap { it.poets }
+            classical + contemporary
+        },
+        scope = scope,
+    )
     val player by lazy { PlayerController(createAudioPlayer(), repository, scope) }
 
     companion object {

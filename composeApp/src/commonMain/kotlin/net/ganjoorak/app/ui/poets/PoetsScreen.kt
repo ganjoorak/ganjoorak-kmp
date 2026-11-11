@@ -272,7 +272,7 @@ fun FollowToggle(poet: Poet, followed: Boolean) {
             Text("دنبال‌شده", style = MaterialTheme.typography.labelMedium)
         }
     } else {
-        OutlinedButton(onClick = { store.follow(poet.key, poet.name) }, contentPadding = padding, modifier = Modifier.height(32.dp)) {
+        OutlinedButton(onClick = { store.follow(poet.key, poet.name, poet.slug) }, contentPadding = padding, modifier = Modifier.height(32.dp)) {
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.size(4.dp))
             Text("دنبال کردن", style = MaterialTheme.typography.labelMedium)
