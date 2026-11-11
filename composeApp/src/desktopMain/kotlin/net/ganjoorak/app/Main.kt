@@ -8,13 +8,18 @@ import net.ganjoorak.app.resources.Res
 import net.ganjoorak.app.resources.app_icon
 import org.jetbrains.compose.resources.painterResource
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "گنجورک",
-        icon = painterResource(Res.drawable.app_icon),
-        state = rememberWindowState(width = 1100.dp, height = 820.dp),
-    ) {
-        App()
+fun main() {
+    val override = System.getProperty("ganjoorak.accountApi")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: System.getenv("GANJOORAK_ACCOUNT_API")?.trim()?.takeIf { it.isNotEmpty() }
+    if (override != null) AppGraph.accountApiBaseUrl = override.trimEnd('/')
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "گنجورک",
+            icon = painterResource(Res.drawable.app_icon),
+            state = rememberWindowState(width = 1100.dp, height = 820.dp),
+        ) {
+            App()
+        }
     }
 }

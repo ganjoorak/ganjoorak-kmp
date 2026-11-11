@@ -6,8 +6,10 @@ import kotlinx.coroutines.MainScope
 import net.ganjoorak.app.data.EcholaliaSource
 import net.ganjoorak.app.data.LocalSource
 import net.ganjoorak.app.data.PoemRepository
+import net.ganjoorak.app.data.account.ACCOUNT_API_BASE_URL
 import net.ganjoorak.app.data.account.AccountApi
 import net.ganjoorak.app.data.account.AccountRepository
+import net.ganjoorak.app.data.account.StoriesRepository
 import net.ganjoorak.app.data.account.createAccountHttpClient
 import net.ganjoorak.app.data.local.LibraryStore
 import net.ganjoorak.app.data.local.SettingsStore
@@ -40,13 +42,20 @@ class AppGraph {
     val accounts = AccountRepository(
         settings = storage,
         apiFactory = { token, onCookie ->
-            AccountApi(createAccountHttpClient(httpEngine()), token, onCookie)
+            AccountApi(createAccountHttpClient(httpEngine()), token, onCookie, baseUrl = accountApiBaseUrl)
         },
         scope = scope,
     )
+    val stories = StoriesRepository(accounts, storage, scope)
     val player by lazy { PlayerController(createAudioPlayer(), repository, scope) }
 
     companion object {
+        /**
+         * Public accounts API the website uses. Desktop QA can point this at a local
+         * fake before [instance] is first read, via the ganjoorak.accountApi property
+         * or the GANJOORAK_ACCOUNT_API environment variable.
+         */
+        var accountApiBaseUrl: String = ACCOUNT_API_BASE_URL
         val instance: AppGraph by lazy { AppGraph() }
     }
 }

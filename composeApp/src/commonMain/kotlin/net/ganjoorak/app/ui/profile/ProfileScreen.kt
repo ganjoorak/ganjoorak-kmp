@@ -130,6 +130,11 @@ fun ProfileScreen(
             items(saved.take(FAVORITES_SHOWN), key = { "fav-${it.ref.key}" }) { poem -> PoemRow(poem) { onOpenPoem(poem.ref) } }
         }
 
+        if (user != null) {
+            section("تکه‌ها")
+            ownerQuotesSection(user.username, onOpenPoem)
+        }
+
         section("شاعران")
         item(key = "following") {
             AppRow(

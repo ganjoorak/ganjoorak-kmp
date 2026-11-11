@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.Poem
+import net.ganjoorak.app.data.account.quoteLines
 import net.ganjoorak.app.data.local.PoemFont
 import net.ganjoorak.app.platform.copyText
 import net.ganjoorak.app.platform.encodePng
@@ -62,10 +63,12 @@ private val SHARE_FONTS = listOf(PoemFont.Vazirmatn, PoemFont.Samim, PoemFont.Ga
 private enum class ShareAction { Link, Text, Image }
 
 @Composable
-fun ShareSheet(poem: Poem, onDismiss: () -> Unit) {
+fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null) {
     val settings by AppGraph.instance.settings.settings.collectAsState()
-    val lines = remember(poem) { poem.verses.map { it.text } }
-    var selected by remember(poem) { mutableStateOf(lines.indices.take(4).toSet()) }
+    val lines = remember(poem) { poem.quoteLines() }
+    var selected by remember(poem, initialLines) {
+        mutableStateOf(initialLines?.toSet() ?: lines.indices.take(4).toSet())
+    }
     var theme by remember { mutableStateOf(ShareTheme.Night) }
     var layout by remember { mutableStateOf(ShareLayout.Single) }
     var font by remember { mutableStateOf(settings.poemFont.takeIf { it in SHARE_FONTS } ?: PoemFont.Vazirmatn) }

@@ -88,6 +88,59 @@ class AccountApiTest {
         assertNull(stored)
     }
 
+
+    @Test
+    fun followingQuotesReturnsPeopleAndSendsCookie() = runTest {
+        var seenCookie: String? = null
+        val engine = MockEngine { request ->
+            seenCookie = request.headers[HttpHeaders.Cookie]
+            assertTrue(request.url.encodedPath.endsWith("/api/account/following/quotes"))
+            respond(
+                """{"people":[{"user":{"username":"sara","displayName":"سارا","avatar":"cypress","accent":"#c45c26"},"quotes":[{"id":7,"key":"ganjoor:hafez:1","href":"/poem/1","poetName":"حافظ","poemTitle":"غزل ۱","from":0,"to":1,"lines":["الا یا ایها الساقی","ادر کأسا و ناولها"],"createdAt":1700000000000}],"latestAt":1700000000000}]}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val api = AccountApi(HttpClient(engine), token = { "tok123" }, onSessionCookie = {})
+        val people = api.followingQuotes()
+        assertEquals("sara", people.single().user.username)
+        assertEquals("سارا", people.single().user.displayName)
+        assertEquals(7, people.single().quotes.single().id)
+        assertEquals("ganjoorak_session=tok123", seenCookie)
+    }
+
+    @Test
+    fun createQuotePostsRangeAndDeleteAcceptsNoContent() = runTest {
+        val engine = MockEngine { request ->
+            when {
+                request.method.value == "POST" && request.url.encodedPath.endsWith("/api/account/quotes") -> respond(
+                    """{"quote":{"id":11,"key":"ganjoor:hafez:1","from":0,"to":1,"lines":["الف","ب"],"createdAt":1}}""",
+                    HttpStatusCode.Created,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                request.method.value == "DELETE" && request.url.encodedPath.endsWith("/api/account/quotes/11") ->
+                    respond("", HttpStatusCode.NoContent)
+                else -> respond("""{"error":"unexpected"}""", HttpStatusCode.BadRequest, headersOf(HttpHeaders.ContentType, "application/json"))
+            }
+        }
+        val api = AccountApi(HttpClient(engine), token = { "tok" }, onSessionCookie = {})
+        val quote = api.createQuote("ganjoor:hafez:1", 0, 1)
+        assertEquals(11, quote.id)
+        assertEquals(listOf("الف", "ب"), quote.lines)
+        api.deleteQuote(11)
+    }
+
+    @Test
+    fun createQuoteSurfacesPersianDailyLimit() = runTest {
+        val api = api(
+            status = HttpStatusCode.TooManyRequests,
+            body = """{"error":"سقف ۲۰ نقل در روز پر شده است؛ فردا دوباره امتحان کنید."}""",
+        )
+        val error = assertFailsWith<AccountException> { api.createQuote("ganjoor:hafez:1", 0, 1) }
+        assertEquals("سقف ۲۰ نقل در روز پر شده است؛ فردا دوباره امتحان کنید.", error.message)
+        assertEquals(429, error.status)
+    }
+
     private fun api(
         token: () -> String? = { null },
         onCookie: (String?) -> Unit = {},

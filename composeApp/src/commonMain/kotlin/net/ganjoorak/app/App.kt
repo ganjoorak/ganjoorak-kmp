@@ -11,6 +11,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import net.ganjoorak.app.data.PoemRef
+import net.ganjoorak.app.data.account.StoryPerson
 import net.ganjoorak.app.data.local.FeedMode
 import net.ganjoorak.app.ui.auth.AuthScreen
 import net.ganjoorak.app.ui.components.AppActions
@@ -49,6 +51,7 @@ import net.ganjoorak.app.ui.profile.ProfileScreen
 import net.ganjoorak.app.ui.saved.SavedScreen
 import net.ganjoorak.app.ui.search.SearchScreen
 import net.ganjoorak.app.ui.settings.SettingsScreen
+import net.ganjoorak.app.ui.stories.StoryViewer
 import net.ganjoorak.app.ui.theme.GanjoorakTheme
 
 private fun AppRoute.menuTarget(): MenuTarget? = when (this) {
@@ -93,6 +96,8 @@ private fun AppShell() {
     val current = backStack.lastOrNull() as? AppRoute
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     var pickingPoets by rememberSaveable { mutableStateOf(false) }
+    var storyViewer by remember { mutableStateOf<Pair<List<StoryPerson>, Int>?>(null) }
+    val storyState by graph.stories.state.collectAsState()
 
     val goTo: (AppRoute) -> Unit = { route -> backStack.switchTo(route) }
     val actions = remember(backStack) {
@@ -114,10 +119,16 @@ private fun AppShell() {
             )
         }
 
+        LaunchedEffect(menuOpen) {
+            if (menuOpen) graph.stories.refresh()
+        }
         if (menuOpen) {
             ModalBottomSheet(onDismissRequest = { menuOpen = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                 AppMenu(
                     current = current?.menuTarget(),
+                    stories = storyState.people,
+                    isUnseen = { storyState.isUnseen(it) },
+                    onOpenStory = { index -> storyViewer = storyState.people to index },
                     onSelect = { target ->
                         menuOpen = false
                         when (target) {
@@ -138,6 +149,22 @@ private fun AppShell() {
     }
 
     if (pickingPoets) FeedPoetsSheet(onDismiss = { pickingPoets = false })
+
+    val viewer = storyViewer
+    if (viewer != null) {
+        StoryViewer(
+            people = viewer.first,
+            startIndex = viewer.second,
+            seen = storyState.seen,
+            onSeen = { username, quoteId -> graph.stories.markSeen(username, quoteId) },
+            onClose = { storyViewer = null },
+            onOpenPoem = { ref ->
+                storyViewer = null
+                menuOpen = false
+                backStack.open(ref.route())
+            },
+        )
+    }
 }
 
 @Composable
@@ -215,6 +242,8 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
                     onOpenPoem = { ref -> backStack.replaceTop(ref.route()) },
                     onOpenPoet = openPoet,
                     onOpenCategory = openCategory,
+                    onOpenLogin = { backStack.open(LoginRoute(false), singleTop = true) },
+                    onOpenProfile = { backStack.open(ProfileRoute, singleTop = true) },
                 )
             }
             entry<PoetRoute> { route ->

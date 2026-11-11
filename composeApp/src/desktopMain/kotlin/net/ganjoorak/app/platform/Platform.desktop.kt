@@ -59,3 +59,5 @@ actual fun shareImage(png: ByteArray, fileName: String): String? {
     target.writeBytes(png)
     return "تصویر ذخیره شد: ${target.absolutePath}"
 }
+
+actual fun currentTimeMillis(): Long = System.currentTimeMillis()
