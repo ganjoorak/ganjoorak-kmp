@@ -45,6 +45,18 @@ private data class SignupBody(val username: String, val password: String, val di
 private data class ResetBody(val username: String, val recoveryCode: String, val newPassword: String)
 
 @Serializable
+private data class CreateQuoteBody(val key: String, val from: Int, val to: Int)
+
+@Serializable
+private data class CreateQuoteResponse(val quote: Quote)
+
+@Serializable
+private data class FollowingQuotesResponse(val people: List<StoryPerson> = emptyList())
+
+@Serializable
+private data class UserQuotesResponse(val quotes: List<Quote> = emptyList(), val next: Long? = null)
+
+@Serializable
 private data class LoginResponse(val user: AccountUser)
 
 @Serializable
@@ -83,6 +95,31 @@ class AccountApi(
 
     /** 401 when signed out. */
     suspend fun me(): AccountUser = get("me").parse<MeResponse>().user
+
+    /** Followed people who shared a fragment in the last 7 days. 401 when signed out. */
+    suspend fun followingQuotes(): List<StoryPerson> =
+        get("following/quotes").parse<FollowingQuotesResponse>().people
+
+    suspend fun createQuote(key: String, from: Int, to: Int): Quote =
+        post("quotes", CreateQuoteBody(key, from, to)).parse<CreateQuoteResponse>().quote
+
+    suspend fun deleteQuote(id: Long) {
+        val response = send(HttpMethod.Delete, "quotes/$id", json = null)
+        if (response.status.value in 200..299) return
+        throw errorFrom(response)
+    }
+
+    suspend fun userQuotes(username: String, before: Long? = null): QuotesPage {
+        val path = buildString {
+            append("users/")
+            // Usernames are [a-z0-9_]{3,32}; no encoding is required.
+            append(username)
+            append("/quotes")
+            if (before != null) append("?before=$before")
+        }
+        val body = get(path).parse<UserQuotesResponse>()
+        return QuotesPage(body.quotes, body.next)
+    }
 
     private suspend fun get(path: String): HttpResponse = send(HttpMethod.Get, path, json = null)
 
@@ -125,12 +162,19 @@ class AccountApi(
                 throw AccountException(AuthValidation.NetworkError, status.value)
             }
         }
+        throw errorFrom(text, status.value)
+    }
+
+    private suspend fun errorFrom(response: HttpResponse): AccountException =
+        errorFrom(response.bodyAsText(), response.status.value)
+
+    private fun errorFrom(text: String, status: Int): AccountException {
         val message = try {
             GanjoorJson.decodeFromString<JsonObject>(text)["error"]?.jsonPrimitive?.content
         } catch (_: Exception) {
             null
         }
-        throw AccountException(message?.takeIf { it.isNotBlank() } ?: AuthValidation.NetworkError, status.value)
+        return AccountException(message?.takeIf { it.isNotBlank() } ?: AuthValidation.NetworkError, status)
     }
 }
 

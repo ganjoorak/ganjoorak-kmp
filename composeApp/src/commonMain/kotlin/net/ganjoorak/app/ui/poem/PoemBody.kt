@@ -2,6 +2,8 @@ package net.ganjoorak.app.ui.poem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import net.ganjoorak.app.data.account.quoteLineIndex
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -115,9 +117,23 @@ fun LazyListScope.poemBlocks(
     sideBySide: Boolean,
     activeVerse: Int?,
     onVerseClick: ((Verse) -> Unit)?,
+    selectedLines: IntRange? = null,
+    onVerseLongClick: ((Verse) -> Unit)? = null,
 ) {
     itemsIndexed(poem.blocks, key = { index, _ -> "b$index" }) { index, block ->
-        PoemBlockView(block, numbers.getOrElse(index) { 0 }, sideBySide, activeVerse, onVerseClick)
+        PoemBlockView(
+            block,
+            numbers.getOrElse(index) { 0 },
+            sideBySide,
+            activeVerse,
+            onVerseClick,
+            selectedLines = selectedLines,
+            onVerseLongClick = onVerseLongClick,
+            isLineSelected = { verse ->
+                val line = poem.quoteLineIndex(verse)
+                line != null && selectedLines != null && line in selectedLines
+            },
+        )
     }
 }
 
@@ -128,6 +144,9 @@ fun PoemBlockView(
     sideBySide: Boolean,
     activeVerse: Int?,
     onVerseClick: ((Verse) -> Unit)?,
+    selectedLines: IntRange? = null,
+    onVerseLongClick: ((Verse) -> Unit)? = null,
+    isLineSelected: (Verse) -> Boolean = { false },
 ) {
     if (block is PoemBlock.Break) {
         Spacer(Modifier.height(18.dp))
@@ -158,25 +177,27 @@ fun PoemBlockView(
             when (block) {
                 is PoemBlock.Couplet -> if (sideBySide && block.second != null) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        VerseText(block.first, base, TextAlign.Center, activeVerse, onVerseClick, Modifier.weight(1f))
+                        VerseText(block.first, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.weight(1f))
                         Spacer(Modifier.width(24.dp))
-                        VerseText(block.second, base, TextAlign.Center, activeVerse, onVerseClick, Modifier.weight(1f))
+                        VerseText(block.second, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.weight(1f))
                     }
                 } else {
-                    VerseText(block.first, base, TextAlign.Center, activeVerse, onVerseClick, Modifier.fillMaxWidth())
-                    block.second?.let { VerseText(it, base, TextAlign.Center, activeVerse, onVerseClick, Modifier.fillMaxWidth()) }
+                    VerseText(block.first, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.fillMaxWidth())
+                    block.second?.let { VerseText(it, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.fillMaxWidth()) }
                     Spacer(Modifier.padding(bottom = 6.dp))
                 }
                 is PoemBlock.Centered -> block.verses.forEach {
-                    VerseText(it, base, TextAlign.Center, activeVerse, onVerseClick, Modifier.fillMaxWidth())
+                    VerseText(it, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.fillMaxWidth())
                 }
-                is PoemBlock.Line -> VerseText(block.verse, base, TextAlign.Center, activeVerse, onVerseClick, Modifier.fillMaxWidth())
+                is PoemBlock.Line -> VerseText(block.verse, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.fillMaxWidth())
                 is PoemBlock.Prose -> VerseText(
                     block.verse,
                     base.copy(lineHeight = style.fontSize * 1.7f),
                     TextAlign.Justify,
                     activeVerse,
                     onVerseClick,
+                    onVerseLongClick,
+                    isLineSelected,
                     Modifier.fillMaxWidth().padding(vertical = 6.dp),
                 )
                 is PoemBlock.Note -> VerseText(
@@ -185,6 +206,8 @@ fun PoemBlockView(
                     TextAlign.Center,
                     activeVerse,
                     onVerseClick,
+                    onVerseLongClick,
+                    isLineSelected,
                     Modifier.fillMaxWidth(),
                 )
                 PoemBlock.Break -> Unit
@@ -201,11 +224,22 @@ private fun VerseText(
     align: TextAlign,
     activeVerse: Int?,
     onVerseClick: ((Verse) -> Unit)?,
+    onVerseLongClick: ((Verse) -> Unit)?,
+    isLineSelected: (Verse) -> Boolean,
     modifier: Modifier,
 ) {
     val active = activeVerse == verse.order
-    val dimmed = activeVerse != null && !active
+    val selected = isLineSelected(verse)
+    val dimmed = activeVerse != null && !active && !selected
     val colors = MaterialTheme.colorScheme
+    val interaction = when {
+        onVerseLongClick != null && onVerseClick != null ->
+            Modifier.combinedClickable(onClick = { onVerseClick(verse) }, onLongClick = { onVerseLongClick(verse) })
+        onVerseLongClick != null ->
+            Modifier.combinedClickable(onClick = {}, onLongClick = { onVerseLongClick(verse) })
+        onVerseClick != null -> Modifier.clickable { onVerseClick(verse) }
+        else -> Modifier
+    }
     Text(
         verse.text,
         style = style.copy(
@@ -218,8 +252,14 @@ private fun VerseText(
         textAlign = align,
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .then(if (active) Modifier.background(colors.primary.copy(alpha = 0.10f)) else Modifier)
-            .then(if (onVerseClick != null) Modifier.clickable { onVerseClick(verse) } else Modifier)
+            .then(
+                when {
+                    selected -> Modifier.background(colors.primary.copy(alpha = 0.16f))
+                    active -> Modifier.background(colors.primary.copy(alpha = 0.10f))
+                    else -> Modifier
+                },
+            )
+            .then(interaction)
             .padding(horizontal = 8.dp, vertical = 2.dp),
     )
 }

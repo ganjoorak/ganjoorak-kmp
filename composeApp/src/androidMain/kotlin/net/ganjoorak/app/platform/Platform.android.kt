@@ -101,3 +101,5 @@ actual fun shareImage(png: ByteArray, fileName: String): String? {
     context.startActivity(chooser)
     return null
 }
+
+actual fun currentTimeMillis(): Long = System.currentTimeMillis()

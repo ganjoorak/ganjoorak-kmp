@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.PoetAvatar
@@ -79,7 +81,22 @@ fun BoxScope.PoemFloatingControls(
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
+        val hasUnseen = AppGraph.instance.stories.state.collectAsState().value.hasUnseen
+        Pill {
+            Box {
+                BarIcon(Icons.Filled.Menu, "منو", app.openMenu)
+                if (hasUnseen) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 6.dp, end = 6.dp)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(colors.primary),
+                    )
+                }
+            }
+        }
         if (poem != null) {
             if (poem.recitations.isNotEmpty()) {
                 Pill { PlayCapsule(isPlaying, onPlay) }

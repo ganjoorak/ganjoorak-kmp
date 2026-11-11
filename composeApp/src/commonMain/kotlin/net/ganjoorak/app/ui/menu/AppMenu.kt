@@ -44,7 +44,9 @@ import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.local.ThemeMode
 import net.ganjoorak.app.resources.Res
 import net.ganjoorak.app.resources.app_icon
+import net.ganjoorak.app.data.account.StoryPerson
 import net.ganjoorak.app.ui.components.SegmentedSwitch
+import net.ganjoorak.app.ui.stories.StoriesRow
 import net.ganjoorak.app.util.toPersianDigits
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
@@ -53,12 +55,20 @@ enum class MenuTarget { Search, Home, Explore, Poets, Saved, Following, Profile,
 
 /** The site's menu, shown in a bottom sheet: destinations in two groups, then theme and text size. */
 @Composable
-fun AppMenu(current: MenuTarget?, onSelect: (MenuTarget) -> Unit, onClose: () -> Unit) {
+fun AppMenu(
+    current: MenuTarget?,
+    onSelect: (MenuTarget) -> Unit,
+    onClose: () -> Unit,
+    stories: List<StoryPerson> = emptyList(),
+    isUnseen: (StoryPerson) -> Boolean = { false },
+    onOpenStory: (Int) -> Unit = {},
+) {
     val store = AppGraph.instance.settings
     val settings by store.settings.collectAsState()
     val colors = MaterialTheme.colorScheme
 
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        StoriesRow(people = stories, isUnseen = isUnseen, onOpen = onOpenStory)
         Column(Modifier.padding(vertical = 8.dp)) {
             MenuItem(Icons.Filled.Search, "جست‌وجو", current == MenuTarget.Search) { onSelect(MenuTarget.Search) }
             MenuGroup("کشف")

@@ -34,3 +34,6 @@ expect fun encodePng(image: androidx.compose.ui.graphics.ImageBitmap): ByteArray
  * Returns a message to show the user, or null when the system UI takes over.
  */
 expect fun shareImage(png: ByteArray, fileName: String): String?
+
+/** Wall-clock milliseconds since the Unix epoch. */
+expect fun currentTimeMillis(): Long

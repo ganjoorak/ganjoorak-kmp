@@ -69,6 +69,11 @@ import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.CategoryRef
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemRef
+import net.ganjoorak.app.data.account.quoteLines
+import net.ganjoorak.app.data.account.quoteLineIndex
+import net.ganjoorak.app.data.account.libraryKey
+import net.ganjoorak.app.data.account.MAX_QUOTE_LINES
+import net.ganjoorak.app.data.account.AccountException
 import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.data.Recitation
 import net.ganjoorak.app.data.Verse
@@ -90,12 +95,18 @@ fun PoemScreen(
     onOpenPoem: (PoemRef) -> Unit,
     onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
+    onOpenLogin: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
 ) {
     val graph = AppGraph.instance
     val loader = rememberLoader("poem-${ref.key}") { graph.repository.poem(ref) }
     var sharing by remember { mutableStateOf(false) }
+    var shareLines by remember { mutableStateOf<IntRange?>(null) }
+    var selection by remember(ref) { mutableStateOf<LineSelection?>(null) }
+    var savingQuote by remember { mutableStateOf(false) }
     val state by loader.state.collectAsState()
     val saved by graph.library.savedPoems.collectAsState()
+    val account by graph.accounts.session.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
@@ -113,6 +124,14 @@ fun PoemScreen(
                 onOpenPoem = onOpenPoem,
                 onOpenPoet = onOpenPoet,
                 onOpenCategory = onOpenCategory,
+                selection = selection,
+                onSelectVerse = { verse ->
+                    val index = s.value.quoteLineIndex(verse)
+                    if (index != null) {
+                        val current = selection
+                        selection = if (current == null) LineSelection(index, index) else current.extendTo(index)
+                    }
+                },
             )
         }
 
@@ -157,13 +176,64 @@ fun PoemScreen(
             isSaved = poem != null && saved.any { it.ref == poem.ref },
             isPlaying = poem != null && player.poemRef == poem.ref && player.isPlaying,
             onToggleSave = { poem?.let(graph.library::toggleSaved) },
-            onShare = { sharing = true },
+            onShare = { shareLines = null; sharing = true },
             onPlay = { poem?.let { p -> if (player.poemRef == p.ref) graph.player.toggle() else graph.player.play(p) } },
             onOpenPoet = onOpenPoet,
         )
+        val currentSelection = selection
+        if (currentSelection != null && poem != null) {
+            PoemSelectionBar(
+                lineCount = currentSelection.count,
+                signedIn = account.isSignedIn,
+                saving = savingQuote,
+                onSave = {
+                    if (savingQuote) return@PoemSelectionBar
+                    val last = minOf(currentSelection.to, currentSelection.from + MAX_QUOTE_LINES - 1)
+                    savingQuote = true
+                    scope.launch {
+                        try {
+                            graph.accounts.api.createQuote(poem.libraryKey(), currentSelection.from, last)
+                            selection = null
+                            val message = if (account.user?.isPublic == false) {
+                                "در صفحهٔ شما گذاشته شد. نمایه‌تان خصوصی است؛ فقط خودتان آن را می‌بینید."
+                            } else {
+                                "در صفحهٔ شما گذاشته شد"
+                            }
+                            val result = snackbar.showSnackbar(message, actionLabel = "دیدن در نمایه")
+                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) onOpenProfile()
+                        } catch (error: AccountException) {
+                            if (error.status == 401) {
+                                val result = snackbar.showSnackbar("برای اشتراک وارد شوید", actionLabel = "ورود")
+                                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) onOpenLogin()
+                            } else {
+                                snackbar.showSnackbar(error.message?.takeIf { it.isNotBlank() } ?: "ذخیره نشد. دوباره امتحان کنید.")
+                            }
+                        } catch (_: Exception) {
+                            snackbar.showSnackbar("ذخیره نشد. دوباره امتحان کنید.")
+                        } finally {
+                            savingQuote = false
+                        }
+                    }
+                },
+                onLogin = onOpenLogin,
+                onCopy = {
+                    val lines = poem.quoteLines().slice(currentSelection.range)
+                    val text = if (poem.poetName.isNotBlank()) lines.joinToString("\n") + "\n— ${poem.poetName}" else lines.joinToString("\n")
+                    copyText(text)
+                    selection = null
+                    scope.launch { snackbar.showSnackbar("کپی شد") }
+                },
+                onShare = {
+                    shareLines = currentSelection.range
+                    selection = null
+                    sharing = true
+                },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 12.dp, bottom = PoemControlsHeight),
+            )
+        }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = PoemControlsHeight))
     }
-    if (sharing && poem != null) ShareSheet(poem, onDismiss = { sharing = false })
+    if (sharing && poem != null) ShareSheet(poem, onDismiss = { sharing = false; shareLines = null }, initialLines = shareLines)
 }
 
 @Composable
@@ -173,6 +243,8 @@ private fun PoemReader(
     onOpenPoem: (PoemRef) -> Unit,
     onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
+    selection: LineSelection?,
+    onSelectVerse: (Verse) -> Unit,
 ) {
     val style = LocalPoemStyle.current
     val playerState by player.state.collectAsState()
@@ -181,10 +253,12 @@ private fun PoemReader(
     val numbers = remember(poem) { coupletNumbers(poem.blocks) }
     val listState = rememberLazyListState()
     val blocksStart = if (poem.recitations.isNotEmpty()) 2 else 1
-    val seekOnClick: ((Verse) -> Unit)? = if (isCurrent) {
-        { verse -> player.seekToVerse(verse.order) }
-    } else {
-        null
+    val onVerseClick: (Verse) -> Unit = { verse ->
+        if (selection != null) {
+            onSelectVerse(verse)
+        } else if (isCurrent) {
+            player.seekToVerse(verse.order)
+        }
     }
 
     if (style.autoScroll) FollowActiveVerse(poem, activeVerse, listState, blocksStart)
@@ -213,7 +287,9 @@ private fun PoemReader(
                 numbers,
                 sideBySide,
                 activeVerse,
-                onVerseClick = seekOnClick,
+                onVerseClick = onVerseClick,
+                selectedLines = selection?.range,
+                onVerseLongClick = onSelectVerse,
             )
             if (poem.previousId != null || poem.nextId != null) item(key = "nav") {
                 Row(

@@ -33,7 +33,7 @@ class AccountRepository(
     )
     val session: StateFlow<AccountSession> = sessionState.asStateFlow()
 
-    private val api = apiFactory({ tokenState.value }, this::persistToken)
+    internal val api = apiFactory({ tokenState.value }, this::persistToken)
 
     init {
         if (tokenState.value != null) {
