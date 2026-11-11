@@ -65,6 +65,12 @@ private data class SignupResponse(val user: AccountUser, val recoveryCode: Strin
 @Serializable
 private data class MeResponse(val user: AccountUser)
 
+@Serializable
+private data class SaveDataBody(val data: AccountDataDto, val merge: Boolean)
+
+@Serializable
+private data class SaveDataResponse(val data: AccountDataDto)
+
 class AccountApi(
     private val client: HttpClient,
     private val token: () -> String?,
@@ -96,6 +102,15 @@ class AccountApi(
     /** 401 when signed out. */
     suspend fun me(): AccountUser = get("me").parse<MeResponse>().user
 
+    /**
+     * Replace or union the signed-in account library. [merge] true unions the
+     * payload with what is already stored, so a first login never drops data.
+     * [merge] false replaces the stored snapshot; callers must include
+     * lovedCollections and interestKeys they want to keep.
+     */
+    suspend fun saveAccountData(data: AccountDataDto, merge: Boolean): AccountDataDto =
+        put("data", SaveDataBody(data, merge)).parse<SaveDataResponse>().data
+
     /** Followed people who shared a fragment in the last 7 days. 401 when signed out. */
     suspend fun followingQuotes(): List<StoryPerson> =
         get("following/quotes").parse<FollowingQuotesResponse>().people
@@ -125,6 +140,9 @@ class AccountApi(
 
     private suspend inline fun <reified B> post(path: String, body: B): HttpResponse =
         send(HttpMethod.Post, path, json = GanjoorJson.encodeToString(body))
+
+    private suspend inline fun <reified B> put(path: String, body: B): HttpResponse =
+        send(HttpMethod.Put, path, json = GanjoorJson.encodeToString(body))
 
     private suspend fun send(method: HttpMethod, path: String, json: String?): HttpResponse {
         val response = try {

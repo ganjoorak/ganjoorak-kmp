@@ -98,7 +98,7 @@ fun PoetScreen(
                 PoetHero(
                     detail = d,
                     followed = settings.followedPoets.any { it.key == d.poet.key },
-                    onToggleFollow = { graph.settings.toggleFollow(d.poet.key, d.poet.name) },
+                    onToggleFollow = { graph.settings.toggleFollow(d.poet.key, d.poet.name, d.poet.slug) },
                     loadingRandom = loadingRandom,
                     randomError = randomError,
                     onRandom = {

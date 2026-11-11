@@ -13,6 +13,9 @@ import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.SavedPoem
 import net.ganjoorak.app.data.remote.GanjoorJson
+import net.ganjoorak.app.platform.currentTimeMillis
+import net.ganjoorak.app.data.account.MAX_FAVORITES
+import net.ganjoorak.app.data.account.MAX_HISTORY
 
 enum class ThemeMode { System, Light, Dark, Paper }
 
@@ -25,7 +28,7 @@ enum class FeedMode { All, Following }
 
 /** A poet whose poems appear in the home feed; [key] is a [net.ganjoorak.app.data.Poet.key]. */
 @Serializable
-data class FollowedPoet(val key: String, val name: String)
+data class FollowedPoet(val key: String, val name: String, val slug: String = "")
 
 @Serializable
 data class AppSettings(
@@ -66,15 +69,18 @@ class SettingsStore(settings: Settings) {
 
     fun update(transform: (AppSettings) -> AppSettings) = value.update(transform)
 
-    fun follow(key: String, name: String) = update {
-        if (it.followedPoets.any { poet -> poet.key == key }) it else it.copy(followedPoets = it.followedPoets + FollowedPoet(key, name))
+    fun follow(key: String, name: String, slug: String = "") = update {
+        if (it.followedPoets.any { poet -> poet.key == key }) it
+        else it.copy(followedPoets = it.followedPoets + FollowedPoet(key, name, slug))
     }
 
     fun unfollow(key: String) = update { it.copy(followedPoets = it.followedPoets.filterNot { poet -> poet.key == key }) }
 
-    fun toggleFollow(key: String, name: String) {
-        if (settings.value.followedPoets.any { it.key == key }) unfollow(key) else follow(key, name)
+    fun toggleFollow(key: String, name: String, slug: String = "") {
+        if (settings.value.followedPoets.any { it.key == key }) unfollow(key) else follow(key, name, slug)
     }
+
+    fun replaceFollowedPoets(poets: List<FollowedPoet>) = update { it.copy(followedPoets = poets) }
 
     fun setFeedMode(mode: FeedMode) = update { it.copy(feedMode = mode) }
 }
@@ -95,7 +101,7 @@ class LibraryStore(settings: Settings) {
             if (list.any { it.ref == poem.ref }) {
                 list.filterNot { it.ref == poem.ref }
             } else {
-                listOf(poem.toSaved()) + list
+                (listOf(poem.toSaved()) + list).take(MAX_FAVORITES)
             }
         }
     }
@@ -104,6 +110,12 @@ class LibraryStore(settings: Settings) {
 
     fun recordRead(poem: Poem) = read.update { list ->
         (listOf(poem.toSaved()) + list.filterNot { it.ref == poem.ref }).take(MAX_HISTORY)
+    }
+
+    /** Replace both lists with a server-sanitized snapshot, newest already first. */
+    fun replace(favorites: List<SavedPoem>, history: List<SavedPoem>) {
+        saved.update { favorites.take(MAX_FAVORITES) }
+        read.update { history.take(MAX_HISTORY) }
     }
 
     fun clearHistory() = read.update { emptyList() }
@@ -118,8 +130,7 @@ class LibraryStore(settings: Settings) {
 
     private companion object {
         const val MAX_RECENT = 12
-        const val MAX_HISTORY = 50
     }
 }
 
-private fun Poem.toSaved() = SavedPoem(id, title, poetName, excerpt, source, ref.poetSlug)
+private fun Poem.toSaved() = SavedPoem(id, title, poetName, excerpt, source, ref.poetSlug, currentTimeMillis())

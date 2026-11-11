@@ -109,7 +109,7 @@ fun FeedPoetsSheet(onDismiss: () -> Unit) {
                         item(key = "g-${group.title}") { SectionTitle(group.title) }
                         items(poets, key = { "${group.title}-${it.key}" }) { poet ->
                             PoetCheckRow(poet, checked = poet.key in selectedKeys) { checked ->
-                                selection = if (checked) selection + FollowedPoet(poet.key, poet.name) else selection.filterNot { it.key == poet.key }
+                                selection = if (checked) selection + FollowedPoet(poet.key, poet.name, poet.slug) else selection.filterNot { it.key == poet.key }
                             }
                         }
                     }
