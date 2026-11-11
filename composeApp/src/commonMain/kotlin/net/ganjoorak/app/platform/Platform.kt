@@ -37,3 +37,9 @@ expect fun shareImage(png: ByteArray, fileName: String): String?
 
 /** Wall-clock milliseconds since the Unix epoch. */
 expect fun currentTimeMillis(): Long
+
+/**
+ * Desktop windows are wide enough for a right-edge [androidx.compose.material3.NavigationRail].
+ * Phones keep the floating bottom bar and the menu sheet.
+ */
+expect val usesSideNavigation: Boolean

@@ -1,6 +1,7 @@
 package net.ganjoorak.app
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -38,6 +41,7 @@ import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.explore.ExploreScreen
 import net.ganjoorak.app.ui.feed.FeedScreen
 import net.ganjoorak.app.ui.menu.AppMenu
+import net.ganjoorak.app.ui.menu.AppNavigationRail
 import net.ganjoorak.app.ui.menu.FeedPoetsSheet
 import net.ganjoorak.app.ui.menu.MenuTarget
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
@@ -52,6 +56,7 @@ import net.ganjoorak.app.ui.saved.SavedScreen
 import net.ganjoorak.app.ui.search.SearchScreen
 import net.ganjoorak.app.ui.settings.SettingsScreen
 import net.ganjoorak.app.ui.stories.StoryViewer
+import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.theme.GanjoorakTheme
 
 private fun AppRoute.menuTarget(): MenuTarget? = when (this) {
@@ -86,8 +91,8 @@ fun App() {
 }
 
 /**
- * Like the site: no tab bar. Every screen reaches the right-side drawer menu and search from its
- * own controls; the drawer lists the destinations.
+ * Like the site on phones: no tab bar; every screen reaches the destinations from the menu sheet.
+ * Desktop windows get a persistent NavigationRail on the right edge instead.
  */
 @Composable
 private fun AppShell() {
@@ -107,44 +112,83 @@ private fun AppShell() {
         )
     }
 
-    CompositionLocalProvider(LocalAppActions provides actions) {
-        Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) {
-                AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
-            }
-            MiniPlayer(
-                graph.player,
-                onOpenPoem = { backStack.open(it.route()) },
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-            )
+    val selectMenu: (MenuTarget) -> Unit = { target ->
+        menuOpen = false
+        when (target) {
+            MenuTarget.Search -> backStack.open(SearchRoute, singleTop = true)
+            MenuTarget.Home -> goTo(FeedRoute)
+            MenuTarget.Explore -> goTo(ExploreRoute)
+            MenuTarget.Poets -> goTo(PoetsRoute)
+            MenuTarget.Saved -> goTo(SavedRoute)
+            MenuTarget.Following -> goTo(FollowingRoute)
+            MenuTarget.Profile -> goTo(ProfileRoute)
+            MenuTarget.Settings -> goTo(SettingsRoute)
         }
+    }
+    val settings by graph.settings.settings.collectAsState()
 
-        LaunchedEffect(menuOpen) {
-            if (menuOpen) graph.stories.refresh()
-        }
-        if (menuOpen) {
-            ModalBottomSheet(onDismissRequest = { menuOpen = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-                AppMenu(
-                    current = current?.menuTarget(),
-                    stories = storyState.people,
-                    isUnseen = { storyState.isUnseen(it) },
-                    onOpenStory = { index -> storyViewer = storyState.people to index },
-                    onSelect = { target ->
-                        menuOpen = false
-                        when (target) {
-                            MenuTarget.Search -> backStack.open(SearchRoute, singleTop = true)
-                            MenuTarget.Home -> goTo(FeedRoute)
-                            MenuTarget.Explore -> goTo(ExploreRoute)
-                            MenuTarget.Poets -> goTo(PoetsRoute)
-                            MenuTarget.Saved -> goTo(SavedRoute)
-                            MenuTarget.Following -> goTo(FollowingRoute)
-                            MenuTarget.Profile -> goTo(ProfileRoute)
-                            MenuTarget.Settings -> goTo(SettingsRoute)
+    CompositionLocalProvider(LocalAppActions provides actions) {
+        if (usesSideNavigation) {
+            // Pin the rail to the physical right of the window; keep content RTL.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(Modifier.fillMaxSize()) {
+                    Column(Modifier.weight(1f)) {
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                            Box(Modifier.weight(1f)) {
+                                AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
+                            }
+                            MiniPlayer(
+                                graph.player,
+                                onOpenPoem = { backStack.open(it.route()) },
+                                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                            )
                         }
-                    },
-                    onClose = { menuOpen = false },
+                    }
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        AppNavigationRail(
+                            current = current?.menuTarget(),
+                            hasStories = storyState.people.isNotEmpty(),
+                            hasUnseenStories = storyState.hasUnseen,
+                            followedCount = settings.followedPoets.size,
+                            onSelect = selectMenu,
+                            onOpenStories = {
+                                val people = storyState.people
+                                if (people.isNotEmpty()) {
+                                    val start = people.indexOfFirst { storyState.isUnseen(it) }.takeIf { it >= 0 } ?: 0
+                                    storyViewer = people to start
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        } else {
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f)) {
+                    AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
+                }
+                MiniPlayer(
+                    graph.player,
+                    onOpenPoem = { backStack.open(it.route()) },
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                 )
             }
+            if (menuOpen) {
+                ModalBottomSheet(onDismissRequest = { menuOpen = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+                    AppMenu(
+                        current = current?.menuTarget(),
+                        stories = storyState.people,
+                        isUnseen = { storyState.isUnseen(it) },
+                        onOpenStory = { index -> storyViewer = storyState.people to index },
+                        onSelect = selectMenu,
+                        onClose = { menuOpen = false },
+                    )
+                }
+            }
+        }
+
+        LaunchedEffect(menuOpen, usesSideNavigation) {
+            if (usesSideNavigation || menuOpen) graph.stories.refresh()
         }
     }
 
