@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +65,9 @@ import net.ganjoorak.app.data.PoemBlock
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.Poet
 import net.ganjoorak.app.ui.components.AppPageBar
+import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.AppPageHeader
+import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.util.toPersianDigits
@@ -90,7 +93,7 @@ private const val POEMS_PER_POET = 3
  * poet card every few poems; it keeps loading as you scroll and «مجموعهٔ تازه» starts over.
  */
 @Composable
-fun ExploreScreen(onBack: () -> Unit, onOpenPoem: (PoemRef) -> Unit, onOpenPoet: (String) -> Unit) {
+fun ExploreScreen(onBack: (() -> Unit)? = null, onOpenPoem: (PoemRef) -> Unit, onOpenPoet: (String) -> Unit) {
     val repository = AppGraph.instance.repository
     val cards = remember { mutableStateListOf<ExploreItem>() }
     var loading by remember { mutableStateOf(false) }
@@ -140,7 +143,9 @@ fun ExploreScreen(onBack: () -> Unit, onOpenPoem: (PoemRef) -> Unit, onOpenPoet:
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        val search = LocalAppActions.current.openSearch
         AppPageBar("کاوش", scrolled, onBack) {
+            IconButton(onClick = search) { Icon(Icons.Filled.Search, contentDescription = "جست‌وجو") }
             IconButton(onClick = {
                 cards.clear()
                 generation++
@@ -150,7 +155,7 @@ fun ExploreScreen(onBack: () -> Unit, onOpenPoem: (PoemRef) -> Unit, onOpenPoet:
             columns = StaggeredGridCells.Adaptive(140.dp),
             state = gridState,
             modifier = Modifier.weight(1f).fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars),
-            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 24.dp + LocalPersistentNavPadding.current.calculateBottomPadding()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp,
         ) {

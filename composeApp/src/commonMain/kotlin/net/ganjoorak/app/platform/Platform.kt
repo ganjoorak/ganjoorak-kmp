@@ -39,7 +39,8 @@ expect fun shareImage(png: ByteArray, fileName: String): String?
 expect fun currentTimeMillis(): Long
 
 /**
- * Desktop windows are wide enough for a right-edge [androidx.compose.material3.NavigationRail].
- * Phones keep the floating bottom bar and the menu sheet.
+ * Desktop windows get a floating vertical destination bar on the physical right.
+ * Phones get the same destinations in a floating bottom bar. A desktop QA hook,
+ * `ganjoorak.nav=bar` or `GANJOORAK_NAV=bar`, forces the phone layout.
  */
 expect val usesSideNavigation: Boolean

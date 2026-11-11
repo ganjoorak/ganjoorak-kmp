@@ -8,6 +8,7 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoetSource
+import net.ganjoorak.app.ui.menu.MenuTarget
 
 @Serializable sealed interface AppRoute : NavKey
 
@@ -31,6 +32,23 @@ import net.ganjoorak.app.data.PoetSource
 @Serializable data class CategoryRoute(val id: Int) : AppRoute
 
 internal fun PoemRef.route() = PoemRoute(id, source, poetSlug)
+
+internal fun AppRoute.menuTarget(): MenuTarget? = when (this) {
+    FeedRoute -> MenuTarget.Home
+    SearchRoute -> MenuTarget.Search
+    ExploreRoute -> MenuTarget.Explore
+    PoetsRoute -> MenuTarget.Poets
+    SavedRoute, FollowingRoute -> MenuTarget.Favorites
+    ProfileRoute, is LoginRoute -> MenuTarget.Profile
+    SettingsRoute -> MenuTarget.Settings
+    else -> null
+}
+
+/** Root tabs on the destination bar; their back affordance is hidden when they sit on the stack alone. */
+internal fun AppRoute.isPrimaryDestination(): Boolean = when (this) {
+    FeedRoute, ExploreRoute, PoetsRoute, SavedRoute, FollowingRoute, ProfileRoute -> true
+    else -> false
+}
 
 /**
  * Polymorphic serializers for every [AppRoute], including [PoemRoute.source]

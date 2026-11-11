@@ -1,14 +1,16 @@
 package net.ganjoorak.app
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -19,9 +21,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -40,37 +44,29 @@ import net.ganjoorak.app.ui.components.AppActions
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.explore.ExploreScreen
 import net.ganjoorak.app.ui.feed.FeedScreen
-import net.ganjoorak.app.ui.menu.AppMenu
-import net.ganjoorak.app.ui.menu.AppNavigationRail
+import net.ganjoorak.app.ui.menu.AppFloatingBottomNav
+import net.ganjoorak.app.ui.menu.AppFloatingSideNav
 import net.ganjoorak.app.ui.menu.FeedPoetsSheet
+import net.ganjoorak.app.ui.menu.FloatingNavMargin
+import net.ganjoorak.app.ui.menu.FloatingNavOccupiedBottom
+import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.menu.MenuTarget
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
 import net.ganjoorak.app.ui.player.MiniPlayer
+import net.ganjoorak.app.ui.poem.LocalPoemChromeHost
+import net.ganjoorak.app.ui.poem.PoemChromeHost
 import net.ganjoorak.app.ui.poem.PoemScreen
 import net.ganjoorak.app.ui.poets.CategoryScreen
-import net.ganjoorak.app.ui.poets.FollowingScreen
 import net.ganjoorak.app.ui.poets.PoetScreen
 import net.ganjoorak.app.ui.poets.PoetsScreen
 import net.ganjoorak.app.ui.profile.ProfileScreen
-import net.ganjoorak.app.ui.saved.SavedScreen
+import net.ganjoorak.app.ui.saved.FavoritesScreen
+import net.ganjoorak.app.ui.saved.FavoritesSection
 import net.ganjoorak.app.ui.search.SearchScreen
 import net.ganjoorak.app.ui.settings.SettingsScreen
 import net.ganjoorak.app.ui.stories.StoryViewer
 import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.theme.GanjoorakTheme
-
-private fun AppRoute.menuTarget(): MenuTarget? = when (this) {
-    FeedRoute -> MenuTarget.Home
-    SearchRoute -> MenuTarget.Search
-    ExploreRoute -> MenuTarget.Explore
-    PoetsRoute -> MenuTarget.Poets
-    SavedRoute -> MenuTarget.Saved
-    FollowingRoute -> MenuTarget.Following
-    ProfileRoute -> MenuTarget.Profile
-    SettingsRoute -> MenuTarget.Settings
-    is LoginRoute -> MenuTarget.Profile
-    else -> null
-}
 
 /** Root composable shared by every platform. */
 @Composable
@@ -91,45 +87,54 @@ fun App() {
 }
 
 /**
- * Like the site on phones: no tab bar; every screen reaches the destinations from the menu sheet.
- * Desktop windows get a persistent NavigationRail on the right edge instead.
+ * Persistent destination chrome, shared across platforms: a floating vertical
+ * bar on the physical right of desktop windows, and a floating bottom bar on
+ * the phone. Search is a compact top action on desktop and lives on Explore
+ * on the phone. Poem play/like/share move into the desktop bar when a poem
+ * is on screen; the phone keeps its bottom pill.
  */
 @Composable
 private fun AppShell() {
     val graph = AppGraph.instance
     val backStack = rememberNavBackStack(appNavConfiguration, FeedRoute)
     val current = backStack.lastOrNull() as? AppRoute
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
     var pickingPoets by rememberSaveable { mutableStateOf(false) }
     var storyViewer by remember { mutableStateOf<Pair<List<StoryPerson>, Int>?>(null) }
     val storyState by graph.stories.state.collectAsState()
+    val settings by graph.settings.settings.collectAsState()
+    val poemChromeHost = remember { PoemChromeHost() }
 
     val goTo: (AppRoute) -> Unit = { route -> backStack.switchTo(route) }
-    val actions = remember(backStack) {
-        AppActions(
-            openMenu = { menuOpen = true },
-            openSearch = { backStack.open(SearchRoute, singleTop = true) },
-        )
-    }
-
+    val openSearch = { backStack.open(SearchRoute, singleTop = true) }
     val selectMenu: (MenuTarget) -> Unit = { target ->
-        menuOpen = false
         when (target) {
-            MenuTarget.Search -> backStack.open(SearchRoute, singleTop = true)
+            MenuTarget.Search -> openSearch()
             MenuTarget.Home -> goTo(FeedRoute)
             MenuTarget.Explore -> goTo(ExploreRoute)
             MenuTarget.Poets -> goTo(PoetsRoute)
-            MenuTarget.Saved -> goTo(SavedRoute)
-            MenuTarget.Following -> goTo(FollowingRoute)
+            MenuTarget.Favorites -> if (current !is SavedRoute && current !is FollowingRoute) goTo(SavedRoute)
             MenuTarget.Profile -> goTo(ProfileRoute)
             MenuTarget.Settings -> goTo(SettingsRoute)
         }
     }
-    val settings by graph.settings.settings.collectAsState()
+    val actions = AppActions(
+        openSearch = openSearch,
+        openStories = { people, index -> storyViewer = people to index },
+    )
 
-    CompositionLocalProvider(LocalAppActions provides actions) {
+    val persistentPadding = if (usesSideNavigation) {
+        PaddingValues(0.dp)
+    } else {
+        PaddingValues(bottom = FloatingNavOccupiedBottom)
+    }
+
+    CompositionLocalProvider(
+        LocalAppActions provides actions,
+        LocalPoemChromeHost provides poemChromeHost,
+        LocalPersistentNavPadding provides persistentPadding,
+    ) {
         if (usesSideNavigation) {
-            // Pin the rail to the physical right of the window; keep content RTL.
+            // Pin the floating bar to the physical right; keep content RTL.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Row(Modifier.fillMaxSize()) {
                     Column(Modifier.weight(1f)) {
@@ -144,52 +149,49 @@ private fun AppShell() {
                             )
                         }
                     }
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        AppNavigationRail(
-                            current = current?.menuTarget(),
-                            hasStories = storyState.people.isNotEmpty(),
-                            hasUnseenStories = storyState.hasUnseen,
-                            followedCount = settings.followedPoets.size,
-                            onSelect = selectMenu,
-                            onOpenStories = {
-                                val people = storyState.people
-                                if (people.isNotEmpty()) {
-                                    val start = people.indexOfFirst { storyState.isUnseen(it) }.takeIf { it >= 0 } ?: 0
-                                    storyViewer = people to start
-                                }
-                            },
-                        )
+                    Box(Modifier.padding(FloatingNavMargin)) {
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                            AppFloatingSideNav(
+                                current = current?.menuTarget(),
+                                favoritesCount = settings.followedPoets.size,
+                                hasUnseenStories = storyState.hasUnseen,
+                                poemChrome = poemChromeHost.current,
+                                onSelect = selectMenu,
+                                onOpenSearch = openSearch,
+                            )
+                        }
                     }
                 }
             }
         } else {
-            Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f)) {
-                    AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
-                }
-                MiniPlayer(
-                    graph.player,
-                    onOpenPoem = { backStack.open(it.route()) },
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                )
-            }
-            if (menuOpen) {
-                ModalBottomSheet(onDismissRequest = { menuOpen = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-                    AppMenu(
-                        current = current?.menuTarget(),
-                        stories = storyState.people,
-                        isUnseen = { storyState.isUnseen(it) },
-                        onOpenStory = { index -> storyViewer = storyState.people to index },
-                        onSelect = selectMenu,
-                        onClose = { menuOpen = false },
+            Box(Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
+                    }
+                    MiniPlayer(
+                        graph.player,
+                        onOpenPoem = { backStack.open(it.route()) },
+                        modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.navigationBars)
+                            .padding(bottom = FloatingNavOccupiedBottom),
                     )
                 }
+                AppFloatingBottomNav(
+                    current = current?.menuTarget(),
+                    favoritesCount = settings.followedPoets.size,
+                    hasUnseenStories = storyState.hasUnseen,
+                    onSelect = selectMenu,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = FloatingNavMargin, vertical = FloatingNavMargin),
+                )
             }
         }
 
-        LaunchedEffect(menuOpen, usesSideNavigation) {
-            if (usesSideNavigation || menuOpen) graph.stories.refresh()
-        }
+        LaunchedEffect(Unit) { graph.stories.refresh() }
     }
 
     if (pickingPoets) FeedPoetsSheet(onDismiss = { pickingPoets = false })
@@ -204,7 +206,6 @@ private fun AppShell() {
             onClose = { storyViewer = null },
             onOpenPoem = { ref ->
                 storyViewer = null
-                menuOpen = false
                 backStack.open(ref.route())
             },
         )
@@ -219,6 +220,8 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
     val openCategory: (Int) -> Unit = { backStack.open(CategoryRoute(it)) }
     val back: () -> Unit = { if (!backStack.pop()) backStack.switchTo(FeedRoute) }
     val home: () -> Unit = { backStack.switchTo(FeedRoute) }
+    val route = backStack.lastOrNull() as? AppRoute
+    val tabBack: (() -> Unit)? = if (route != null && route.isPrimaryDestination() && backStack.size <= 2) null else back
 
     PredictiveBackTransitions.TrackGesture()
     NavDisplay(
@@ -241,17 +244,34 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
                     onOpenPoets = { backStack.open(PoetsRoute) },
                 )
             }
-            entry<ExploreRoute> { ExploreScreen(onBack = back, onOpenPoem = openPoem, onOpenPoet = openPoet) }
-            entry<PoetsRoute> { PoetsScreen(onBack = back, onOpenPoet = openPoet) }
+            entry<ExploreRoute> { ExploreScreen(onBack = tabBack, onOpenPoem = openPoem, onOpenPoet = openPoet) }
+            entry<PoetsRoute> { PoetsScreen(onBack = tabBack, onOpenPoet = openPoet) }
             entry<SearchRoute> { SearchScreen(onBack = back, onOpenPoem = openPoem, onOpenPoet = openPoet) }
-            entry<SavedRoute> { SavedScreen(onBack = back, onOpenPoem = openPoem, onOpenFeed = home) }
-            entry<FollowingRoute> {
-                FollowingScreen(
-                    onBack = back,
+            entry<SavedRoute> {
+                FavoritesScreen(
+                    initialSection = FavoritesSection.Poems,
+                    onBack = tabBack,
+                    onOpenPoem = openPoem,
                     onOpenPoet = openPoet,
+                    onOpenFeed = home,
                     onOpenPoets = { backStack.open(PoetsRoute) },
                     onEditFollowing = onEditFollowing,
-                    onReadFollowing = {
+                    onReadFavorites = {
+                        graph.settings.setFeedMode(FeedMode.Following)
+                        home()
+                    },
+                )
+            }
+            entry<FollowingRoute> {
+                FavoritesScreen(
+                    initialSection = FavoritesSection.Poets,
+                    onBack = tabBack,
+                    onOpenPoem = openPoem,
+                    onOpenPoet = openPoet,
+                    onOpenFeed = home,
+                    onOpenPoets = { backStack.open(PoetsRoute) },
+                    onEditFollowing = onEditFollowing,
+                    onReadFavorites = {
                         graph.settings.setFeedMode(FeedMode.Following)
                         home()
                     },
@@ -259,7 +279,7 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
             }
             entry<ProfileRoute> {
                 ProfileScreen(
-                    onBack = back,
+                    onBack = tabBack,
                     onOpenPoem = openPoem,
                     onOpenSaved = { backStack.open(SavedRoute) },
                     onOpenFollowing = { backStack.open(FollowingRoute) },

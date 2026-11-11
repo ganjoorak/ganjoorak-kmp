@@ -66,7 +66,7 @@ import net.ganjoorak.app.ui.components.rememberLoader
 import net.ganjoorak.app.util.hijriLifespan
 import net.ganjoorak.app.util.toPersianDigits
 
-/** The site's poet profile: portrait, facts, «دنبال کردن», then the poet's books and poems. */
+/** The site's poet profile: portrait, facts, «علاقه‌مندم», then the poet's books and poems. */
 @Composable
 fun PoetScreen(
     poetKey: String,
@@ -191,7 +191,7 @@ private fun PoetHero(
                 ) {
                     Icon(if (followed) Icons.Filled.Check else Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(if (followed) "دنبال می‌کنید" else "دنبال کردن")
+                    Text(if (followed) "مورد علاقه" else "علاقه‌مندم")
                 }
                 OutlinedButton(onClick = onRandom, enabled = !loadingRandom, modifier = Modifier.weight(1f)) {
                     if (loadingRandom) {

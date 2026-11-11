@@ -75,7 +75,7 @@ private class PoetEntry(val poet: Poet, val group: String)
  * group chips for the classic and modern tabs, and a grid or list where every poet can be followed.
  */
 @Composable
-fun PoetsScreen(onBack: () -> Unit, onOpenPoet: (String) -> Unit) {
+fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit) {
     val repository = AppGraph.instance.repository
     val settings by AppGraph.instance.settings.settings.collectAsState()
     val classicLoader = rememberLoader("poet-groups") { repository.poetGroups() }
@@ -121,7 +121,7 @@ fun PoetsScreen(onBack: () -> Unit, onOpenPoet: (String) -> Unit) {
 
     AppPage(
         title = "شاعران",
-        subtitle = "${all.size.toPersianDigits()} شاعر از گنجور و اکولالیا. دنبالشان کنید تا در فید «دنبال‌شده‌ها» بیایند.",
+        subtitle = "${all.size.toPersianDigits()} شاعر از گنجور و اکولالیا. به علاقه‌مندی‌ها اضافه کنید تا فید «علاقه‌مندی‌ها» از آن‌ها پر شود.",
         onBack = onBack,
         actions = {
             IconButton(onClick = { view = if (view == PoetsView.Grid) PoetsView.List else PoetsView.Grid }) {
@@ -252,7 +252,7 @@ private fun PoetTile(entry: PoetEntry, followed: Boolean, onClick: () -> Unit, m
     }
 }
 
-/** «دنبال کردن» / «دنبال‌شده», outline until followed. */
+/** The site's «علاقه‌مندم» / «مورد علاقه», outline until preferred. */
 @Composable
 fun FollowToggle(poet: Poet, followed: Boolean) {
     val store = AppGraph.instance.settings
@@ -269,13 +269,13 @@ fun FollowToggle(poet: Poet, followed: Boolean) {
         ) {
             Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.size(4.dp))
-            Text("دنبال‌شده", style = MaterialTheme.typography.labelMedium)
+            Text("مورد علاقه", style = MaterialTheme.typography.labelMedium)
         }
     } else {
         OutlinedButton(onClick = { store.follow(poet.key, poet.name, poet.slug) }, contentPadding = padding, modifier = Modifier.height(32.dp)) {
             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.size(4.dp))
-            Text("دنبال کردن", style = MaterialTheme.typography.labelMedium)
+            Text("علاقه‌مندم", style = MaterialTheme.typography.labelMedium)
         }
     }
 }

@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.json.Json
 import net.ganjoorak.app.data.PoetSource
+import net.ganjoorak.app.ui.menu.MenuTarget
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -55,5 +56,28 @@ class NavigationTest {
             LoginRoute(true),
             json.decodeFromString(navKeySerializer, json.encodeToString(navKeySerializer, LoginRoute(signup = true))),
         )
+    }
+
+    @Test
+    fun savedAndFollowingRoutesStillRoundTrip() {
+        assertEquals(
+            SavedRoute,
+            json.decodeFromString(navKeySerializer, json.encodeToString(navKeySerializer, SavedRoute)),
+        )
+        assertEquals(
+            FollowingRoute,
+            json.decodeFromString(navKeySerializer, json.encodeToString(navKeySerializer, FollowingRoute)),
+        )
+    }
+
+    @Test
+    fun savedAndFollowingShareTheFavoritesDestination() {
+        assertEquals(MenuTarget.Favorites, SavedRoute.menuTarget())
+        assertEquals(MenuTarget.Favorites, FollowingRoute.menuTarget())
+        assertTrue(SavedRoute.isPrimaryDestination())
+        assertTrue(FollowingRoute.isPrimaryDestination())
+        assertFalse(SearchRoute.isPrimaryDestination())
+        assertEquals(MenuTarget.Search, SearchRoute.menuTarget())
+        assertEquals(MenuTarget.Home, FeedRoute.menuTarget())
     }
 }

@@ -32,12 +32,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import net.ganjoorak.app.data.account.StoryPerson
 import net.ganjoorak.app.util.toPersianDigits
 
-/** What every screen can ask of the shell: the navigation drawer and the search page. */
-class AppActions(val openMenu: () -> Unit, val openSearch: () -> Unit)
+/** What every screen can ask of the shell: search and, when present, the stories viewer. */
+class AppActions(
+    val openMenu: () -> Unit = {},
+    val openSearch: () -> Unit,
+    val openStories: (List<StoryPerson>, Int) -> Unit = { _, _ -> },
+)
 
-val LocalAppActions = staticCompositionLocalOf { AppActions(openMenu = {}, openSearch = {}) }
+val LocalAppActions = staticCompositionLocalOf { AppActions(openSearch = {}) }
 
 /** The site's outline icon button: a round card with a 1px border, used for the floating controls. */
 @Composable
@@ -64,7 +69,7 @@ fun FloatingIconButton(
     }
 }
 
-/** A pill-shaped segmented control, like the site's «همه / دنبال‌شده‌ها» switch. */
+/** A pill-shaped segmented control, like the site's «همه / علاقه‌مندی‌ها» switch. */
 @Composable
 fun <T> SegmentedSwitch(
     options: List<T>,

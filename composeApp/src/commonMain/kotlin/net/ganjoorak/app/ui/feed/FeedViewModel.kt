@@ -30,13 +30,13 @@ data class FeedState(
     /** Bumped whenever the feed restarts so the pager can jump back to the top. */
     val generation: Int = 0,
 ) {
-    /** «دنبال‌شده‌ها» is selected but no poet is followed yet. */
+    /** «علاقه‌مندی‌ها» is selected but no preferred poet is set yet. */
     val isFollowingEmpty: Boolean get() = source.mode == FeedMode.Following && source.followedKeys.isEmpty()
 }
 
 /**
  * Endless feed of poems, loaded a few pages ahead, like the website's home: «همه» draws random
- * poems from all poets, «دنبال‌شده‌ها» only from followed poets.
+ * poems from all poets, «علاقه‌مندی‌ها» only from preferred poets.
  */
 class FeedViewModel(
     private val repository: PoemRepository,
