@@ -44,3 +44,24 @@ Requires JDK 17+ (21 recommended) and, for Android, the Android SDK.
 ```
 
 CI (`.github/workflows/build.yml`) runs the tests and builds the APKs, the `.deb`, the AppImage and the `.msi` as artifacts.
+
+## Releases
+
+Tagged versions (`v*`) are published on the [Releases](https://github.com/ganjoorak/ganjoorak-kmp/releases) page. Each release includes:
+
+- Android debug and release APKs
+- Linux `.deb` and `.AppImage`
+- Windows `.msi`
+
+To publish a new version from `main`:
+
+```bash
+git checkout main
+git pull
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The [Release](https://github.com/ganjoorak/ganjoorak-kmp/actions/workflows/release.yml) workflow reuses the Build jobs, then creates a GitHub Release for that tag and attaches the packages. You can also run the workflow manually (`workflow_dispatch`) against an existing tag. Direct download URLs look like:
+
+`https://github.com/ganjoorak/ganjoorak-kmp/releases/download/v0.1.0/<file>`

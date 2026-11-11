@@ -2,12 +2,20 @@ name: Build
 
 on:
   push:
+    # Version tags are built by release.yml (which calls this workflow) to avoid a double build.
+    tags-ignore:
+      - "v*"
   pull_request:
   workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: write
 
 concurrency:
-  group: native-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Uploading builds to cp.okcomp.ir is paused; scripts/upload-to-share.sh is kept for when it returns.
 
@@ -31,15 +39,17 @@ jobs:
           ./gradlew :composeApp:packageDeb :composeApp:packageAppImage --stacktrace
           bash scripts/package-appimage.sh
       - uses: actions/upload-artifact@v4
-        # Uploads can fail when the account's artifact storage is full; that shouldn't fail the build.
-        continue-on-error: true
+        # Uploads can fail when the account's artifact storage is full; that shouldn't fail a regular
+        # build, but a release must have the files to attach.
+        continue-on-error: ${{ github.event_name != 'workflow_call' }}
         with:
           retention-days: 7
           name: ganjoorak-android
           path: androidApp/build/outputs/apk/**/*.apk
       - uses: actions/upload-artifact@v4
-        # Uploads can fail when the account's artifact storage is full; that shouldn't fail the build.
-        continue-on-error: true
+        # Uploads can fail when the account's artifact storage is full; that shouldn't fail a regular
+        # build, but a release must have the files to attach.
+        continue-on-error: ${{ github.event_name != 'workflow_call' }}
         with:
           retention-days: 7
           name: ganjoorak-linux
@@ -92,8 +102,9 @@ jobs:
       - name: Windows installer
         run: ./gradlew :composeApp:packageMsi --stacktrace
       - uses: actions/upload-artifact@v4
-        # Uploads can fail when the account's artifact storage is full; that shouldn't fail the build.
-        continue-on-error: true
+        # Uploads can fail when the account's artifact storage is full; that shouldn't fail a regular
+        # build, but a release must have the files to attach.
+        continue-on-error: ${{ github.event_name != 'workflow_call' }}
         with:
           retention-days: 7
           name: ganjoorak-windows
