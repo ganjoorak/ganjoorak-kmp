@@ -6,6 +6,9 @@ import kotlinx.coroutines.MainScope
 import net.ganjoorak.app.data.EcholaliaSource
 import net.ganjoorak.app.data.LocalSource
 import net.ganjoorak.app.data.PoemRepository
+import net.ganjoorak.app.data.account.AccountApi
+import net.ganjoorak.app.data.account.AccountRepository
+import net.ganjoorak.app.data.account.createAccountHttpClient
 import net.ganjoorak.app.data.local.LibraryStore
 import net.ganjoorak.app.data.local.SettingsStore
 import net.ganjoorak.app.data.remote.EcholaliaApi
@@ -34,6 +37,13 @@ class AppGraph {
     )
     val settings = SettingsStore(storage)
     val library = LibraryStore(storage)
+    val accounts = AccountRepository(
+        settings = storage,
+        apiFactory = { token, onCookie ->
+            AccountApi(createAccountHttpClient(httpEngine()), token, onCookie)
+        },
+        scope = scope,
+    )
     val player by lazy { PlayerController(createAudioPlayer(), repository, scope) }
 
     companion object {

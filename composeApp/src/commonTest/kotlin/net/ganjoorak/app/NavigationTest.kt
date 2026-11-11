@@ -51,5 +51,9 @@ class NavigationTest {
             SearchRoute,
             json.decodeFromString(navKeySerializer, json.encodeToString(navKeySerializer, SearchRoute)),
         )
+        assertEquals(
+            LoginRoute(true),
+            json.decodeFromString(navKeySerializer, json.encodeToString(navKeySerializer, LoginRoute(signup = true))),
+        )
     }
 }
