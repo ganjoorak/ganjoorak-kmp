@@ -28,9 +28,7 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
-import kotlinx.serialization.Serializable
 import net.ganjoorak.app.data.PoemRef
-import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.data.local.FeedMode
 import net.ganjoorak.app.ui.components.AppActions
 import net.ganjoorak.app.ui.components.LocalAppActions
@@ -51,24 +49,6 @@ import net.ganjoorak.app.ui.saved.SavedScreen
 import net.ganjoorak.app.ui.search.SearchScreen
 import net.ganjoorak.app.ui.settings.SettingsScreen
 import net.ganjoorak.app.ui.theme.GanjoorakTheme
-
-@Serializable sealed interface AppRoute : NavKey
-
-@Serializable data object FeedRoute : AppRoute
-@Serializable data object PoetsRoute : AppRoute
-@Serializable data object ExploreRoute : AppRoute
-@Serializable data object SearchRoute : AppRoute
-@Serializable data object SavedRoute : AppRoute
-@Serializable data object FollowingRoute : AppRoute
-@Serializable data object ProfileRoute : AppRoute
-@Serializable data object SettingsRoute : AppRoute
-@Serializable data class PoemRoute(val id: Int, val source: PoetSource = PoetSource.Ganjoor, val poet: String = "") : AppRoute {
-    val ref: PoemRef get() = PoemRef(source, id, poet)
-}
-@Serializable data class PoetRoute(val key: String) : AppRoute
-@Serializable data class CategoryRoute(val id: Int) : AppRoute
-
-private fun PoemRef.route() = PoemRoute(id, source, poetSlug)
 
 private fun AppRoute.menuTarget(): MenuTarget? = when (this) {
     FeedRoute -> MenuTarget.Home
@@ -107,7 +87,7 @@ fun App() {
 @Composable
 private fun AppShell() {
     val graph = AppGraph.instance
-    val backStack = rememberNavBackStack(FeedRoute)
+    val backStack = rememberNavBackStack(appNavConfiguration, FeedRoute)
     val current = backStack.lastOrNull() as? AppRoute
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     var pickingPoets by rememberSaveable { mutableStateOf(false) }
@@ -174,7 +154,7 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
-            remember { PredictiveBackTransitions.entryDecorator<AppRoute>() },
+            remember { PredictiveBackTransitions.entryDecorator<NavKey>() },
         ),
         transitionSpec = { PredictiveBackTransitions.push() },
         popTransitionSpec = { PredictiveBackTransitions.pop() },
@@ -243,29 +223,4 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
             }
         },
     )
-}
-
-/** Push [route], optionally skipping a duplicate at the top of the stack. */
-private fun MutableList<NavKey>.open(route: AppRoute, singleTop: Boolean = false) {
-    if (singleTop && lastOrNull() == route) return
-    add(route)
-}
-
-/** Pop back to the feed, then show [route] (or just the feed). */
-private fun MutableList<NavKey>.switchTo(route: AppRoute) {
-    while (size > 1) removeAt(size - 1)
-    if (route != FeedRoute) add(route)
-}
-
-/** Replace the current top entry, used when stepping between poems. */
-private fun MutableList<NavKey>.replaceTop(route: AppRoute) {
-    if (isNotEmpty()) removeAt(size - 1)
-    add(route)
-}
-
-/** @return false if the feed is already the only entry. */
-private fun MutableList<NavKey>.pop(): Boolean {
-    if (size <= 1) return false
-    removeAt(size - 1)
-    return true
 }
