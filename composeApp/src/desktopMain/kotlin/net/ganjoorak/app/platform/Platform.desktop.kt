@@ -62,4 +62,5 @@ actual fun shareImage(png: ByteArray, fileName: String): String? {
 
 actual fun currentTimeMillis(): Long = System.currentTimeMillis()
 
-actual val usesSideNavigation: Boolean = true
+actual val usesSideNavigation: Boolean
+    get() = System.getProperty("ganjoorak.nav") != "bar" && System.getenv("GANJOORAK_NAV") != "bar"

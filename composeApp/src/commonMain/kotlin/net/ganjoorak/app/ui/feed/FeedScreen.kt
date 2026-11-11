@@ -61,8 +61,8 @@ import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.LoadingBox
 import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.components.TopicChip
-import net.ganjoorak.app.ui.poem.PoemControlsHeight
 import net.ganjoorak.app.ui.poem.PoemFloatingControls
+import net.ganjoorak.app.ui.poem.poemChromeBottomSpace
 import net.ganjoorak.app.ui.poem.PoemHeader
 import net.ganjoorak.app.ui.poem.coupletNumbers
 import net.ganjoorak.app.ui.poem.poemBlocks
@@ -72,7 +72,8 @@ import net.ganjoorak.app.ui.theme.LocalPoemStyle
 
 /**
  * The home feed, as on the site: one poem per page, swipe up for the next. Above each title sit the
- * «همه / دنبال‌شده‌ها» switch; the controls float over the poem.
+ * «همه / علاقه‌مندی‌ها» switch; the controls float over the poem on the phone
+ * and live in the side nav on desktop.
  */
 @Composable
 fun FeedScreen(
@@ -94,7 +95,7 @@ fun FeedScreen(
             SegmentedSwitch(
                 options = listOf(FeedMode.All, FeedMode.Following),
                 selected = settings.feedMode,
-                label = { if (it == FeedMode.All) "همه" else "دنبال‌شده‌ها" },
+                label = { if (it == FeedMode.All) "همه" else "علاقه‌مندی‌ها" },
                 onSelect = graph.settings::setFeedMode,
             )
         }
@@ -114,8 +115,8 @@ fun FeedScreen(
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 state.isFollowingEmpty -> FeedEmpty(
-                    title = "هنوز شاعری را دنبال نمی‌کنید",
-                    body = "شاعران را دنبال کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
+                    title = "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
+                    body = "شاعران را به علاقه‌مندی‌ها اضافه کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
                     primary = "دیدن شاعران" to onOpenPoets,
                     secondary = "بازگشت به همه" to { graph.settings.setFeedMode(FeedMode.All) },
                 )
@@ -186,7 +187,7 @@ private fun FeedPage(
             val sideBySide = style.sideBySide(minOf(maxWidth, 900.dp))
             LazyColumn(
                 modifier = Modifier.fillMaxSize().widthIn(max = 900.dp),
-                contentPadding = PaddingValues(bottom = PoemControlsHeight),
+                contentPadding = PaddingValues(bottom = poemChromeBottomSpace()),
             ) {
                 poemBlocks(poem, numbers, sideBySide, activeVerse, onVerseClick = null)
             }

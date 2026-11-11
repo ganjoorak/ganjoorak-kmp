@@ -43,6 +43,8 @@ import net.ganjoorak.app.data.SavedPoem
 import net.ganjoorak.app.ui.components.AppPage
 import net.ganjoorak.app.ui.components.AppRow
 import net.ganjoorak.app.ui.components.BorderedCard
+import net.ganjoorak.app.ui.components.LocalAppActions
+import net.ganjoorak.app.ui.stories.StoriesRow
 import net.ganjoorak.app.util.toPersianDigits
 
 private const val FAVORITES_SHOWN = 5
@@ -53,7 +55,7 @@ private const val FAVORITES_SHOWN = 5
  */
 @Composable
 fun ProfileScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onOpenPoem: (PoemRef) -> Unit,
     onOpenSaved: () -> Unit,
     onOpenFollowing: () -> Unit,
@@ -65,6 +67,7 @@ fun ProfileScreen(
     val history by graph.library.history.collectAsState()
     val settings by graph.settings.settings.collectAsState()
     val account by graph.accounts.session.collectAsState()
+    val storyState by graph.stories.state.collectAsState()
     val scope = rememberCoroutineScope()
     val user = account.user
 
@@ -91,9 +94,9 @@ fun ProfileScreen(
                             )
                             Text(
                                 if (user != null) {
-                                    "@${user.username} · ${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر دنبال‌شده"
+                                    "@${user.username} · ${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر مورد علاقه"
                                 } else {
-                                    "${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر دنبال‌شده"
+                                    "${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر مورد علاقه"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -130,6 +133,17 @@ fun ProfileScreen(
             items(saved.take(FAVORITES_SHOWN), key = { "fav-${it.ref.key}" }) { poem -> PoemRow(poem) { onOpenPoem(poem.ref) } }
         }
 
+        if (storyState.people.isNotEmpty()) {
+            item(key = "stories") {
+                val openStories = LocalAppActions.current.openStories
+                StoriesRow(
+                    people = storyState.people,
+                    isUnseen = { storyState.isUnseen(it) },
+                    onOpen = { index -> openStories(storyState.people, index) },
+                )
+            }
+        }
+
         if (user != null) {
             section("تکه‌ها")
             ownerQuotesSection(user.username, onOpenPoem)
@@ -138,8 +152,8 @@ fun ProfileScreen(
         section("شاعران")
         item(key = "following") {
             AppRow(
-                title = "شاعران دنبال‌شده",
-                meta = settings.followedPoets.takeIf { it.isNotEmpty() }?.joinToString("، ") { it.name } ?: "هنوز شاعری را دنبال نمی‌کنید",
+                title = "شاعران مورد علاقه",
+                meta = settings.followedPoets.takeIf { it.isNotEmpty() }?.joinToString("، ") { it.name } ?: "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
                 leading = { Icon(Icons.Filled.HowToReg, contentDescription = null) },
                 trailing = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null) },
                 onClick = onOpenFollowing,

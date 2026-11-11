@@ -73,10 +73,10 @@ fun FeedPoetsSheet(onDismiss: () -> Unit) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("شاعران دنبال‌شده", style = MaterialTheme.typography.titleLarge)
+                    Text("شاعران مورد علاقه", style = MaterialTheme.typography.titleLarge)
                     Text(
                         if (selection.isEmpty()) {
-                            "حالت «دنبال‌شده‌ها» در صفحهٔ اصلی فقط از این شاعران شعر می‌آورد"
+                            "حالت «علاقه‌مندی‌ها» در صفحهٔ اصلی از این شاعران شعر می‌آورد"
                         } else {
                             "${selection.size.toPersianDigits()} شاعر انتخاب شده"
                         },

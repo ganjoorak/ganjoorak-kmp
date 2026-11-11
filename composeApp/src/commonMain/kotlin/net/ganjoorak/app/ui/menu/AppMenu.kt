@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +43,7 @@ import net.ganjoorak.app.ui.stories.StoriesRow
 import net.ganjoorak.app.util.toPersianDigits
 import org.jetbrains.compose.resources.painterResource
 
-enum class MenuTarget { Search, Home, Explore, Poets, Saved, Following, Profile, Settings }
+enum class MenuTarget { Search, Home, Explore, Poets, Favorites, Profile, Settings }
 
 /** The site's menu, shown in a bottom sheet: destinations in two groups, then settings. */
 @Composable
@@ -69,13 +68,12 @@ fun AppMenu(
             MenuItem(Icons.Filled.Explore, "کاوش", current == MenuTarget.Explore) { onSelect(MenuTarget.Explore) }
             MenuItem(Icons.Filled.People, "شاعران", current == MenuTarget.Poets) { onSelect(MenuTarget.Poets) }
             MenuGroup("کتابخانهٔ من")
-            MenuItem(Icons.Filled.FavoriteBorder, "نشان‌شده‌ها", current == MenuTarget.Saved) { onSelect(MenuTarget.Saved) }
             MenuItem(
-                Icons.Filled.HowToReg,
-                "شاعران دنبال‌شده",
-                current == MenuTarget.Following,
+                Icons.Filled.FavoriteBorder,
+                "علاقه‌مندی‌ها",
+                current == MenuTarget.Favorites,
                 count = settings.followedPoets.size.takeIf { it > 0 },
-            ) { onSelect(MenuTarget.Following) }
+            ) { onSelect(MenuTarget.Favorites) }
             MenuItem(Icons.Filled.AccountCircle, "حساب کاربری", current == MenuTarget.Profile) { onSelect(MenuTarget.Profile) }
         }
 

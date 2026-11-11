@@ -228,10 +228,10 @@ fun PoemScreen(
                     selection = null
                     sharing = true
                 },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 12.dp, bottom = PoemControlsHeight),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 12.dp, bottom = poemChromeBottomSpace()),
             )
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = PoemControlsHeight))
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = poemChromeBottomSpace()))
     }
     if (sharing && poem != null) ShareSheet(poem, onDismiss = { sharing = false; shareLines = null }, initialLines = shareLines)
 }
@@ -268,7 +268,7 @@ private fun PoemReader(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize().widthIn(max = 900.dp).windowInsetsPadding(WindowInsets.statusBars),
-            contentPadding = PaddingValues(top = 48.dp, bottom = PoemControlsHeight),
+            contentPadding = PaddingValues(top = 48.dp, bottom = poemChromeBottomSpace()),
         ) {
             item(key = "header") {
                 PoemHeader(
