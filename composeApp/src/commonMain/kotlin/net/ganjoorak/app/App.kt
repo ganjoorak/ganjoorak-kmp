@@ -1,5 +1,7 @@
 package net.ganjoorak.app
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -21,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -179,7 +182,19 @@ private fun AppNavHost(nav: NavHostController, onEditFollowing: () -> Unit) {
     }
     val home: () -> Unit = { nav.navigate(FeedRoute) { popUpTo<FeedRoute> { inclusive = true } } }
 
-    NavHost(navController = nav, startDestination = FeedRoute) {
+    // Navigation Compose 2.8+ plays these pop transitions during a predictive back
+    // gesture and restores the current screen if the gesture is cancelled.
+    NavHost(
+        navController = nav,
+        startDestination = FeedRoute,
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = {
+            scaleOut(
+                targetScale = 0.9f,
+                transformOrigin = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0.5f),
+            )
+        },
+    ) {
         composable<FeedRoute> {
             FeedScreen(
                 onOpenPoem = openPoem,
