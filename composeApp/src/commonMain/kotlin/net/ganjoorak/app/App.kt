@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
@@ -149,7 +150,10 @@ private fun AppShell() {
                             )
                         }
                     }
-                    Box(Modifier.padding(FloatingNavMargin)) {
+                    Box(
+                        Modifier.fillMaxHeight().padding(FloatingNavMargin),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                             AppFloatingSideNav(
                                 current = current?.menuTarget(),
@@ -158,6 +162,7 @@ private fun AppShell() {
                                 poemChrome = poemChromeHost.current,
                                 onSelect = selectMenu,
                                 onOpenSearch = openSearch,
+                                modifier = Modifier.fillMaxHeight(),
                             )
                         }
                     }
