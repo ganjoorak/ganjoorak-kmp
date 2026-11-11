@@ -103,3 +103,5 @@ actual fun shareImage(png: ByteArray, fileName: String): String? {
 }
 
 actual fun currentTimeMillis(): Long = System.currentTimeMillis()
+
+actual val usesSideNavigation: Boolean = false
