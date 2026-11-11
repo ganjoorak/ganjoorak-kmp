@@ -10,15 +10,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Explore
@@ -28,7 +25,6 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,19 +37,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.AppGraph
-import net.ganjoorak.app.data.local.ThemeMode
 import net.ganjoorak.app.resources.Res
 import net.ganjoorak.app.resources.app_icon
 import net.ganjoorak.app.data.account.StoryPerson
-import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.stories.StoriesRow
 import net.ganjoorak.app.util.toPersianDigits
 import org.jetbrains.compose.resources.painterResource
-import kotlin.math.roundToInt
 
 enum class MenuTarget { Search, Home, Explore, Poets, Saved, Following, Profile, Settings }
 
-/** The site's menu, shown in a bottom sheet: destinations in two groups, then theme and text size. */
+/** The site's menu, shown in a bottom sheet: destinations in two groups, then settings. */
 @Composable
 fun AppMenu(
     current: MenuTarget?,
@@ -87,35 +80,6 @@ fun AppMenu(
         }
 
         HorizontalDivider(color = colors.outlineVariant)
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SegmentedSwitch(
-                options = listOf(ThemeMode.Dark, ThemeMode.Light, ThemeMode.Paper),
-                selected = if (settings.theme == ThemeMode.System) ThemeMode.Dark else settings.theme,
-                label = {
-                    when (it) {
-                        ThemeMode.Dark -> "تاریک"
-                        ThemeMode.Light -> "روشن"
-                        else -> "کاغذی"
-                    }
-                },
-                onSelect = { mode -> store.update { it.copy(theme = mode) } },
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("اندازهٔ متن شعر", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                IconButton(onClick = { store.update { it.copy(fontScale = (it.fontScale - 0.05f).coerceAtLeast(0.8f)) } }) {
-                    Icon(Icons.Filled.Remove, contentDescription = "کوچک‌تر کردن متن")
-                }
-                Text(
-                    "${(settings.fontScale * 100).roundToInt().toPersianDigits()}٪",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.widthIn(min = 40.dp),
-                )
-                IconButton(onClick = { store.update { it.copy(fontScale = (it.fontScale + 0.05f).coerceAtMost(1.6f)) } }) {
-                    Icon(Icons.Filled.Add, contentDescription = "بزرگ‌تر کردن متن")
-                }
-            }
-        }
         MenuItem(Icons.Filled.Settings, "تنظیمات", current == MenuTarget.Settings) { onSelect(MenuTarget.Settings) }
         Box(Modifier.size(8.dp))
     }
