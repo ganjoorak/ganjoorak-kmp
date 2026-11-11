@@ -30,6 +30,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.local.FeedMode
+import net.ganjoorak.app.ui.auth.AuthScreen
 import net.ganjoorak.app.ui.components.AppActions
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.explore.ExploreScreen
@@ -59,6 +60,7 @@ private fun AppRoute.menuTarget(): MenuTarget? = when (this) {
     FollowingRoute -> MenuTarget.Following
     ProfileRoute -> MenuTarget.Profile
     SettingsRoute -> MenuTarget.Settings
+    is LoginRoute -> MenuTarget.Profile
     else -> null
 }
 
@@ -191,6 +193,17 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
                     onOpenSaved = { backStack.open(SavedRoute) },
                     onOpenFollowing = { backStack.open(FollowingRoute) },
                     onOpenSettings = { backStack.open(SettingsRoute) },
+                    onOpenLogin = { signup -> backStack.open(LoginRoute(signup), singleTop = true) },
+                )
+            }
+            entry<LoginRoute> { route ->
+                AuthScreen(
+                    startSignup = route.signup,
+                    onBack = back,
+                    onSignedIn = {
+                        if (!backStack.pop()) backStack.switchTo(ProfileRoute)
+                        else if (backStack.lastOrNull() != ProfileRoute) backStack.switchTo(ProfileRoute)
+                    },
                 )
             }
             entry<SettingsRoute> { SettingsScreen(onBack = back) }

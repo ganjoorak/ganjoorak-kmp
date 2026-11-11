@@ -19,6 +19,7 @@ import net.ganjoorak.app.data.PoetSource
 @Serializable data object FollowingRoute : AppRoute
 @Serializable data object ProfileRoute : AppRoute
 @Serializable data object SettingsRoute : AppRoute
+@Serializable data class LoginRoute(val signup: Boolean = false) : AppRoute
 @Serializable data class PoemRoute(
     val id: Int,
     val source: PoetSource = PoetSource.Ganjoor,
@@ -48,6 +49,7 @@ val appNavSerializersModule = SerializersModule {
         subclass(FollowingRoute::class, FollowingRoute.serializer())
         subclass(ProfileRoute::class, ProfileRoute.serializer())
         subclass(SettingsRoute::class, SettingsRoute.serializer())
+        subclass(LoginRoute::class, LoginRoute.serializer())
         subclass(PoemRoute::class, PoemRoute.serializer())
         subclass(PoetRoute::class, PoetRoute.serializer())
         subclass(CategoryRoute::class, CategoryRoute.serializer())

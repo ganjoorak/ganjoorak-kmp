@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.SavedPoem
@@ -45,8 +48,8 @@ import net.ganjoorak.app.util.toPersianDigits
 private const val FAVORITES_SHOWN = 5
 
 /**
- * The site's «حساب من» (its ProfileView) for this device: a hero card, the last poem read and
- * the liked poems. There is no sign-in in the app, so everything here lives on the device.
+ * The site's «حساب من»: a hero card, the last poem read and the liked poems.
+ * Sign-in uses the same accounts API as the website; unread data still lives on the device.
  */
 @Composable
 fun ProfileScreen(
@@ -55,11 +58,15 @@ fun ProfileScreen(
     onOpenSaved: () -> Unit,
     onOpenFollowing: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenLogin: (signup: Boolean) -> Unit,
 ) {
     val graph = AppGraph.instance
     val saved by graph.library.savedPoems.collectAsState()
     val history by graph.library.history.collectAsState()
     val settings by graph.settings.settings.collectAsState()
+    val account by graph.accounts.session.collectAsState()
+    val scope = rememberCoroutineScope()
+    val user = account.user
 
     AppPage(
         title = "حساب من",
@@ -69,19 +76,37 @@ fun ProfileScreen(
         },
         headerExtra = {
             BorderedCard(Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(28.dp)) }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("خوانندهٔ گنجورک", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(
-                            "${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر دنبال‌شده",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(28.dp)) }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                user?.displayName?.ifBlank { user.username } ?: "خوانندهٔ گنجورک",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                if (user != null) {
+                                    "@${user.username} · ${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر دنبال‌شده"
+                                } else {
+                                    "${saved.size.toPersianDigits()} پسندیده · ${settings.followedPoets.size.toPersianDigits()} شاعر دنبال‌شده"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (user == null) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { onOpenLogin(true) }, modifier = Modifier.weight(1f)) { Text("ساخت حساب") }
+                            OutlinedButton(onClick = { onOpenLogin(false) }, modifier = Modifier.weight(1f)) { Text("ورود") }
+                        }
+                    } else {
+                        TextButton(onClick = { scope.launch { graph.accounts.logOut() } }) { Text("خروج از حساب") }
                     }
                 }
             }

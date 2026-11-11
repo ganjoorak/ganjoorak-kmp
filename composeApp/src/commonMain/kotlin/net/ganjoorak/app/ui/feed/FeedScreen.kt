@@ -1,8 +1,8 @@
 package net.ganjoorak.app.ui.feed
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,7 +28,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
@@ -107,43 +106,43 @@ fun FeedScreen(
     val current = state.poems.getOrNull(pager.currentPage)
     LaunchedEffect(current?.ref) { current?.let(graph.library::recordRead) }
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        when {
-            state.isFollowingEmpty -> FeedEmpty(
-                eyebrow = eyebrow,
-                title = "هنوز شاعری را دنبال نمی‌کنید",
-                body = "شاعران را دنبال کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
-                primary = "دیدن شاعران" to onOpenPoets,
-                secondary = "بازگشت به همه" to { graph.settings.setFeedMode(FeedMode.All) },
-            )
-            state.poems.isEmpty() && state.error != null -> Column(Modifier.fillMaxSize()) {
-                Box(Modifier.windowInsetsPadding(WindowInsets.statusBars).fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
-                    eyebrow()
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.statusBars)) {
+        Column(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), contentAlignment = Alignment.Center) {
+            eyebrow()
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                state.isFollowingEmpty -> FeedEmpty(
+                    title = "هنوز شاعری را دنبال نمی‌کنید",
+                    body = "شاعران را دنبال کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
+                    primary = "دیدن شاعران" to onOpenPoets,
+                    secondary = "بازگشت به همه" to { graph.settings.setFeedMode(FeedMode.All) },
+                )
+                state.poems.isEmpty() && state.error != null -> ErrorBox(state.error!!, onRetry = vm::retry)
+                else -> VerticalPager(
+                    state = pager,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1,
+                    // The loader's key must change with its position: with a fixed key the pager keeps the
+                    // loader in view as poems are inserted before it, so the first poem never shows.
+                    key = { index -> state.poems.getOrNull(index)?.ref?.key ?: "loader-$index" },
+                ) { index ->
+                    val poem = state.poems.getOrNull(index)
+                    when {
+                        poem != null -> FeedPage(
+                            poem = poem,
+                            activeVerse = player.activeVerseOrder.takeIf { player.poemRef == poem.ref },
+                            onOpenPoet = onOpenPoet,
+                            onOpenCategory = { crumb: CategoryRef -> onOpenCategory(crumb.id) }.takeIf { poem.source == PoetSource.Ganjoor },
+                            onOpen = { onOpenPoem(poem.ref) },
+                        )
+                        state.error != null -> ErrorBox(state.error!!, onRetry = vm::retry)
+                        else -> LoadingBox()
+                    }
                 }
-                ErrorBox(state.error!!, onRetry = vm::retry)
             }
-            else -> VerticalPager(
-                state = pager,
-                modifier = Modifier.fillMaxSize(),
-                beyondViewportPageCount = 1,
-                // The loader's key must change with its position: with a fixed key the pager keeps the
-                // loader in view as poems are inserted before it, so the first poem never shows.
-                key = { index -> state.poems.getOrNull(index)?.ref?.key ?: "loader-$index" },
-            ) { index ->
-                val poem = state.poems.getOrNull(index)
-                when {
-                    poem != null -> FeedPage(
-                        poem = poem,
-                        eyebrow = eyebrow,
-                        activeVerse = player.activeVerseOrder.takeIf { player.poemRef == poem.ref },
-                        onOpenPoet = onOpenPoet,
-                        onOpenCategory = { crumb: CategoryRef -> onOpenCategory(crumb.id) }.takeIf { poem.source == PoetSource.Ganjoor },
-                        onOpen = { onOpenPoem(poem.ref) },
-                    )
-                    state.error != null -> ErrorBox(state.error!!, onRetry = vm::retry)
-                    else -> LoadingBox()
-                }
-            }
+        }
         }
 
         PoemFloatingControls(
@@ -165,7 +164,6 @@ fun FeedScreen(
 @Composable
 private fun FeedPage(
     poem: Poem,
-    eyebrow: @Composable () -> Unit,
     activeVerse: Int?,
     onOpenPoet: (String) -> Unit,
     onOpenCategory: ((CategoryRef) -> Unit)?,
@@ -173,29 +171,24 @@ private fun FeedPage(
 ) {
     val style = LocalPoemStyle.current
     val numbers = remember(poem) { coupletNumbers(poem.blocks) }
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        val sideBySide = style.sideBySide(minOf(maxWidth, 900.dp))
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().widthIn(max = 900.dp).windowInsetsPadding(WindowInsets.statusBars),
-            contentPadding = PaddingValues(bottom = PoemControlsHeight),
+    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Title, poet and book trail stay pinned; only the verses scroll.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .clickable(onClick = onOpen),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            item(key = "header") {
-                PoemHeader(poem, onPoetClick = onOpenPoet, onCategoryClick = onOpenCategory, eyebrow = eyebrow)
-            }
-            poemBlocks(poem, numbers, sideBySide, activeVerse, onVerseClick = null)
-            item(key = "next") {
-                Column(
-                    Modifier.fillMaxWidth().padding(top = 24.dp).clickable(onClick = onOpen).padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        "برای شعر بعدی بکشید",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        textAlign = TextAlign.Center,
-                    )
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
-                }
+            PoemHeader(poem, onPoetClick = onOpenPoet, onCategoryClick = onOpenCategory, modifier = Modifier.widthIn(max = 900.dp))
+        }
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            val sideBySide = style.sideBySide(minOf(maxWidth, 900.dp))
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().widthIn(max = 900.dp),
+                contentPadding = PaddingValues(bottom = PoemControlsHeight),
+            ) {
+                poemBlocks(poem, numbers, sideBySide, activeVerse, onVerseClick = null)
             }
         }
     }
@@ -204,18 +197,16 @@ private fun FeedPage(
 /** The site's FeedModeEmpty: the switch on top, then an icon, a message and two actions. */
 @Composable
 private fun FeedEmpty(
-    eyebrow: @Composable () -> Unit,
     title: String,
     body: String,
     primary: Pair<String, () -> Unit>,
     secondary: Pair<String, () -> Unit>,
 ) {
     Column(
-        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = 20.dp, vertical = 16.dp),
+        Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        eyebrow()
-        Spacer(Modifier.height(64.dp))
+        Spacer(Modifier.height(48.dp))
         Box(
             Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center,
