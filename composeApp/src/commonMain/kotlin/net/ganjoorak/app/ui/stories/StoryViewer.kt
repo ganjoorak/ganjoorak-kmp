@@ -62,6 +62,7 @@ import net.ganjoorak.app.data.account.STORY_DISMISS_DRAG_PX
 import net.ganjoorak.app.data.account.STORY_DURATION_MS
 import net.ganjoorak.app.data.account.STORY_HOLD_MS
 import net.ganjoorak.app.data.account.StoryPerson
+import net.ganjoorak.app.ui.account.FollowUserButton
 import net.ganjoorak.app.data.account.chronological
 import net.ganjoorak.app.data.account.firstUnseenIndex
 import net.ganjoorak.app.data.account.formatStoryTime
@@ -249,6 +250,10 @@ private fun StoryViewerBody(
                                     color = colors.onSurfaceVariant,
                                 )
                             }
+                            FollowUserButton(
+                                username = person.user.username,
+                                displayName = person.user.displayName.ifBlank { person.user.username },
+                            )
                             IconButton(onClick = closeState.value) {
                                 Icon(Icons.Filled.Close, contentDescription = "بستن")
                             }

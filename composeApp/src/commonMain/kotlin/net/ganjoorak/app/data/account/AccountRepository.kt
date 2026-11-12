@@ -64,6 +64,13 @@ class AccountRepository(
         persistUser(null)
     }
 
+    suspend fun followState(username: String): Boolean = api.followState(username)
+
+    suspend fun setFollowing(username: String, follow: Boolean): Boolean =
+        if (follow) api.followUser(username) else api.unfollowUser(username)
+
+    suspend fun followList(followers: Boolean = false): List<FollowedUser> = api.followList(followers)
+
     suspend fun refresh() {
         if (tokenState.value.isNullOrBlank()) {
             persistUser(null)

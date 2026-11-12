@@ -24,7 +24,7 @@ enum class PoemFont { Vazirmatn, Samim, Tanha, Shabnam, Gandom, Parastoo, Sahel,
 enum class CoupletLayout { Auto, Stacked, SideBySide }
 
 /** Where the home feed draws its poems from. */
-enum class FeedMode { All, Following }
+enum class FeedMode { All, Following, Followed }
 
 /** A poet whose poems appear in the home feed; [key] is a [net.ganjoorak.app.data.Poet.key]. */
 @Serializable

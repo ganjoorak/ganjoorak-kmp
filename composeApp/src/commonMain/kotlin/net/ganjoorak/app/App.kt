@@ -249,6 +249,7 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
                     onOpenPoet = openPoet,
                     onOpenCategory = openCategory,
                     onOpenPoets = { backStack.open(PoetsRoute) },
+                    onOpenLogin = { backStack.open(LoginRoute(false), singleTop = true) },
                 )
             }
             entry<ExploreRoute> { ExploreScreen(onBack = tabBack, onOpenPoem = openPoem, onOpenPoet = openPoet) }
