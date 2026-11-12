@@ -3,7 +3,6 @@ package net.ganjoorak.app
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -124,6 +123,7 @@ private fun AppShell() {
     )
 
     val persistentPadding = if (usesSideNavigation) {
+        // Overlay the rail; do not reserve a right-hand gutter for poems or lists.
         PaddingValues(0.dp)
     } else {
         PaddingValues(bottom = FloatingNavOccupiedBottom)
@@ -135,10 +135,10 @@ private fun AppShell() {
         LocalPersistentNavPadding provides persistentPadding,
     ) {
         if (usesSideNavigation) {
-            // Pin the floating bar to the physical right; keep content RTL.
+            // Overlay the floating bar on the physical right; keep content RTL and full-width.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Row(Modifier.fillMaxSize()) {
-                    Column(Modifier.weight(1f)) {
+                Box(Modifier.fillMaxSize()) {
+                    Column(Modifier.fillMaxSize()) {
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                             Box(Modifier.weight(1f)) {
                                 AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
@@ -151,7 +151,10 @@ private fun AppShell() {
                         }
                     }
                     Box(
-                        Modifier.fillMaxHeight().padding(FloatingNavMargin),
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .padding(FloatingNavMargin),
                         contentAlignment = Alignment.Center,
                     ) {
                         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -159,7 +162,6 @@ private fun AppShell() {
                                 current = current?.menuTarget(),
                                 favoritesCount = settings.followedPoets.size,
                                 hasUnseenStories = storyState.hasUnseen,
-                                poemChrome = poemChromeHost.current,
                                 onSelect = selectMenu,
                                 onOpenSearch = openSearch,
                                 modifier = Modifier.fillMaxHeight(),

@@ -1,13 +1,7 @@
 package net.ganjoorak.app.ui.menu
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -30,14 +24,10 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
@@ -53,20 +43,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import net.ganjoorak.app.ui.components.PoetAvatar
-import net.ganjoorak.app.ui.poem.PoemChrome
 import net.ganjoorak.app.util.toPersianDigits
 
 /** Gap between the floating nav card and the window edge. */
 val FloatingNavMargin = 12.dp
 
 /** Width of the desktop vertical bar, not counting [FloatingNavMargin] on either side. */
-val FloatingNavWidth = 100.dp
+val FloatingNavWidth = 64.dp
 
 /** Height of the phone bar, not counting [FloatingNavMargin] on either side. */
 val FloatingNavHeight = 72.dp
@@ -74,12 +63,13 @@ val FloatingNavHeight = 72.dp
 val FloatingNavOccupiedEnd: Dp = FloatingNavWidth + FloatingNavMargin * 2
 val FloatingNavOccupiedBottom: Dp = FloatingNavHeight + FloatingNavMargin * 2
 
-private val FloatingNavShape = RoundedCornerShape(28.dp)
+private val FloatingNavShape = RoundedCornerShape(32.dp)
 private val FloatingNavElevation = 6.dp
 
 /**
  * Extra padding the shell reserves so content is not hidden under the floating
- * destination bar. Desktop sets the end inset; the phone sets the bottom inset.
+ * destination bar. The phone sets a bottom inset; on desktop the rail overlays
+ * the content and no end inset is reserved, so poems can use the full width.
  */
 val LocalPersistentNavPadding = compositionLocalOf { PaddingValues(0.dp) }
 
@@ -105,24 +95,22 @@ val PrimaryDestinations = listOf(
 )
 
 /**
- * Desktop: a compact vertical rounded card, wrapped to its content and
- * centered on the right edge — not stretched to the window height. Poem
- * play/like/share sit in a tight 2×2 group under the destinations. Labels
- * hide and the column scrolls if the window is too short.
+ * Desktop: a narrow icon-only vertical pill, wrapped to its content and
+ * centered on the physical right edge — not stretched to the window height.
+ * The column scrolls if the window is too short. Poem play/like/share live
+ * in a separate floating pill on the poem itself, not in this rail.
  */
 @Composable
 fun AppFloatingSideNav(
     current: MenuTarget?,
     favoritesCount: Int,
     hasUnseenStories: Boolean,
-    poemChrome: PoemChrome?,
     onSelect: (MenuTarget) -> Unit,
     onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val showLabels = maxHeight >= 440.dp
         Surface(
             modifier = Modifier.width(FloatingNavWidth).heightIn(max = maxHeight),
             shape = FloatingNavShape,
@@ -141,7 +129,6 @@ fun AppFloatingSideNav(
                     selected = current == MenuTarget.Search,
                     onClick = onOpenSearch,
                     description = "جست‌وجو",
-                    showLabel = false,
                 ) {
                     Icon(Icons.Filled.Search, contentDescription = "جست‌وجو", modifier = Modifier.size(20.dp))
                 }
@@ -150,29 +137,12 @@ fun AppFloatingSideNav(
                         selected = current == item.target,
                         onClick = { onSelect(item.target) },
                         description = item.label,
-                        showLabel = showLabels,
                     ) {
                         DestinationIcon(
                             item = item,
                             selected = current == item.target,
                             badge = destinationBadge(item.target, favoritesCount, hasUnseenStories),
                         )
-                    }
-                }
-                AnimatedVisibility(
-                    visible = poemChrome != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    val chrome = poemChrome
-                    if (chrome != null) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                color = colors.outlineVariant,
-                            )
-                            PoemRailControls(chrome)
-                        }
                     }
                 }
             }
@@ -185,17 +155,17 @@ private fun CompactRailItem(
     selected: Boolean,
     onClick: () -> Unit,
     description: String,
-    showLabel: Boolean,
     icon: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val indicator by animateColorAsState(if (selected) colors.secondaryContainer else Color.Transparent)
-    Column(
+    Box(
         Modifier
             .width(FloatingNavWidth)
+            .semantics { contentDescription = description }
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(vertical = 1.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             Modifier
@@ -204,17 +174,6 @@ private fun CompactRailItem(
                 .background(indicator),
             contentAlignment = Alignment.Center,
         ) { icon() }
-        if (showLabel) {
-            Text(
-                description,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
-                color = if (selected) colors.onSurface else colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-            )
-        }
     }
 }
 
@@ -301,90 +260,4 @@ private fun destinationBadge(target: MenuTarget, favoritesCount: Int, hasUnseenS
     MenuTarget.Favorites -> favoritesCount.takeIf { it > 0 }?.toPersianDigits()?.let { DestBadge.Count(it) }
     MenuTarget.Profile -> if (hasUnseenStories) DestBadge.Dot else null
     else -> null
-}
-
-/** Play, like, share and the poet portrait in a tight 2×2 grid so the bar stays short. */
-@Composable
-private fun PoemRailControls(chrome: PoemChrome) {
-    val colors = MaterialTheme.colorScheme
-    val poem = chrome.poem
-    val key = poem.poetKey
-    val openPoet = chrome.onOpenPoet
-    val actions = buildList<@Composable () -> Unit> {
-        if (poem.recitations.isNotEmpty()) {
-            add { RailPlayButton(chrome.isPlaying, chrome.onPlay) }
-        }
-        add {
-            CompactChromeIcon(
-                if (chrome.isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                if (chrome.isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-                chrome.onToggleSave,
-                tint = if (chrome.isSaved) colors.error else colors.onSurfaceVariant,
-            )
-        }
-        add {
-            CompactChromeIcon(Icons.Filled.Share, "هم‌رسانی", chrome.onShare, tint = colors.onSurfaceVariant)
-        }
-        if (key != null && openPoet != null) {
-            add {
-                Box(
-                    Modifier
-                        .size(ChromeSize)
-                        .clip(CircleShape)
-                        .selectable(selected = false, role = Role.Button, onClick = { openPoet(key) }),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    PoetAvatar(poem.poetName, poem.poetImageUrl, 24.dp)
-                }
-            }
-        }
-    }
-    Column(
-        modifier = Modifier.padding(bottom = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        actions.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.Center) {
-                row.forEach { item -> item() }
-            }
-        }
-    }
-}
-
-private val ChromeSize = 36.dp
-
-@Composable
-private fun CompactChromeIcon(icon: ImageVector, description: String, onClick: () -> Unit, tint: Color) {
-    Box(
-        Modifier
-            .size(ChromeSize)
-            .clip(CircleShape)
-            .selectable(selected = false, role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(18.dp))
-    }
-}
-
-@Composable
-private fun RailPlayButton(isPlaying: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val container by animateColorAsState(if (isPlaying) colors.primary else colors.primaryContainer)
-    val content by animateColorAsState(if (isPlaying) colors.onPrimary else colors.onPrimaryContainer)
-    Box(
-        Modifier
-            .size(ChromeSize)
-            .clip(CircleShape)
-            .background(container)
-            .selectable(selected = isPlaying, role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            contentDescription = if (isPlaying) "توقف خوانش" else "پخش خوانش",
-            tint = content,
-            modifier = Modifier.size(18.dp),
-        )
-    }
 }
