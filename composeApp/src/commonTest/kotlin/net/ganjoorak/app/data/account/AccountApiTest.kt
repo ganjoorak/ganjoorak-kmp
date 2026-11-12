@@ -178,6 +178,45 @@ class AccountApiTest {
         assertEquals(listOf("ghazal"), saved.interestKeys)
     }
 
+
+    @Test
+    fun followUserPutsAndUnfollowDeletes() = runTest {
+        val methods = mutableListOf<String>()
+        val paths = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            methods += request.method.value
+            paths += request.url.encodedPath
+            val following = if (request.method.value == "PUT") "true" else "false"
+            respond(
+                """{"following":$following}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val api = AccountApi(HttpClient(engine), token = { "tok" }, onSessionCookie = {})
+        assertEquals(true, api.followUser("sara"))
+        assertEquals(false, api.unfollowUser("sara"))
+        assertEquals(false, api.followState("sara"))
+        assertEquals(listOf("PUT", "DELETE", "GET"), methods)
+        assertTrue(paths.all { it.endsWith("/api/account/follow/sara") })
+    }
+
+    @Test
+    fun followListReturnsUsers() = runTest {
+        val engine = MockEngine { request ->
+            assertTrue(request.url.encodedPath.endsWith("/api/account/following"))
+            respond(
+                """{"users":[{"username":"sara","displayName":"سارا","avatar":"cypress","followedAt":1700000000000}]}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val api = AccountApi(HttpClient(engine), token = { "tok" }, onSessionCookie = {})
+        val users = api.followList()
+        assertEquals("sara", users.single().username)
+        assertEquals("سارا", users.single().displayName)
+    }
+
     private fun api(
         token: () -> String? = { null },
         onCookie: (String?) -> Unit = {},

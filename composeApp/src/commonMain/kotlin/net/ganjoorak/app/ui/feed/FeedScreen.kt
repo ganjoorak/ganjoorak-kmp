@@ -72,8 +72,8 @@ import net.ganjoorak.app.ui.theme.LocalPoemStyle
 
 /**
  * The home feed, as on the site: one poem per page, swipe up for the next. Above each title sit the
- * «همه / علاقه‌مندی‌ها» switch; the controls float over the poem on the phone
- * and live in the side nav on desktop.
+ * «همه / علاقه‌مندی‌ها / دنبال‌شده‌ها» switch. The last tab shows stories and posts
+ * from followed users instead of poems.
  */
 @Composable
 fun FeedScreen(
@@ -81,6 +81,7 @@ fun FeedScreen(
     onOpenPoet: (String) -> Unit,
     onOpenCategory: (Int) -> Unit,
     onOpenPoets: () -> Unit,
+    onOpenLogin: () -> Unit = {},
 ) {
     val graph = AppGraph.instance
     val vm = viewModel { FeedViewModel(graph.repository, graph.settings) }
@@ -93,9 +94,15 @@ fun FeedScreen(
     val eyebrow: @Composable () -> Unit = {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             SegmentedSwitch(
-                options = listOf(FeedMode.All, FeedMode.Following),
+                options = listOf(FeedMode.All, FeedMode.Following, FeedMode.Followed),
                 selected = settings.feedMode,
-                label = { if (it == FeedMode.All) "همه" else "علاقه‌مندی‌ها" },
+                label = {
+                    when (it) {
+                        FeedMode.All -> "همه"
+                        FeedMode.Following -> "علاقه‌مندی‌ها"
+                        FeedMode.Followed -> "دنبال‌شده‌ها"
+                    }
+                },
                 onSelect = graph.settings::setFeedMode,
             )
         }
@@ -114,6 +121,10 @@ fun FeedScreen(
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
+                state.isFollowedMode -> FollowedFeed(
+                    onOpenLogin = onOpenLogin,
+                    onOpenPoem = onOpenPoem,
+                )
                 state.isFollowingEmpty -> FeedEmpty(
                     title = "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
                     body = "شاعران را به علاقه‌مندی‌ها اضافه کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
@@ -146,7 +157,7 @@ fun FeedScreen(
         }
         }
 
-        PoemFloatingControls(
+        if (!state.isFollowedMode && !state.isFollowingEmpty) PoemFloatingControls(
             poem = current,
             isSaved = current != null && saved.any { it.ref == current.ref },
             isPlaying = current != null && player.poemRef == current.ref && player.isPlaying,
@@ -197,11 +208,11 @@ private fun FeedPage(
 
 /** The site's FeedModeEmpty: the switch on top, then an icon, a message and two actions. */
 @Composable
-private fun FeedEmpty(
+internal fun FeedEmpty(
     title: String,
     body: String,
-    primary: Pair<String, () -> Unit>,
-    secondary: Pair<String, () -> Unit>,
+    primary: Pair<String, () -> Unit>? = null,
+    secondary: Pair<String, () -> Unit>? = null,
 ) {
     Column(
         Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp),
@@ -225,11 +236,15 @@ private fun FeedEmpty(
             modifier = Modifier.widthIn(max = 420.dp),
         )
         Spacer(Modifier.height(20.dp))
-        Button(onClick = primary.second) {
-            Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(primary.first)
+        if (primary != null) {
+            Button(onClick = primary.second) {
+                Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(primary.first)
+            }
         }
-        TextButton(onClick = secondary.second) { Text(secondary.first) }
+        if (secondary != null) {
+            TextButton(onClick = secondary.second) { Text(secondary.first) }
+        }
     }
 }

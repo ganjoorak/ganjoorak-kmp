@@ -54,6 +54,20 @@ private data class CreateQuoteResponse(val quote: Quote)
 private data class FollowingQuotesResponse(val people: List<StoryPerson> = emptyList())
 
 @Serializable
+private data class FollowStateResponse(val following: Boolean = false)
+
+@Serializable
+private data class FollowListResponse(val users: List<FollowedUser> = emptyList())
+
+@Serializable
+data class FollowedUser(
+    val username: String,
+    val displayName: String = "",
+    val avatar: String = "",
+    val followedAt: Long = 0,
+)
+
+@Serializable
 private data class UserQuotesResponse(val quotes: List<Quote> = emptyList(), val next: Long? = null)
 
 @Serializable
@@ -114,6 +128,20 @@ class AccountApi(
     /** Followed people who shared a fragment in the last 7 days. 401 when signed out. */
     suspend fun followingQuotes(): List<StoryPerson> =
         get("following/quotes").parse<FollowingQuotesResponse>().people
+
+    /** 401 when signed out. */
+    suspend fun followState(username: String): Boolean =
+        get("follow/$username").parse<FollowStateResponse>().following
+
+    suspend fun followUser(username: String): Boolean =
+        send(HttpMethod.Put, "follow/$username", json = null).parse<FollowStateResponse>().following
+
+    suspend fun unfollowUser(username: String): Boolean =
+        send(HttpMethod.Delete, "follow/$username", json = null).parse<FollowStateResponse>().following
+
+    /** The signed-in user's own lists; other people's are not public. */
+    suspend fun followList(followers: Boolean = false): List<FollowedUser> =
+        get(if (followers) "followers" else "following").parse<FollowListResponse>().users
 
     suspend fun createQuote(key: String, from: Int, to: Int): Quote =
         post("quotes", CreateQuoteBody(key, from, to)).parse<CreateQuoteResponse>().quote

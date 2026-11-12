@@ -32,11 +32,15 @@ data class FeedState(
 ) {
     /** «علاقه‌مندی‌ها» is selected but no preferred poet is set yet. */
     val isFollowingEmpty: Boolean get() = source.mode == FeedMode.Following && source.followedKeys.isEmpty()
+
+    /** «دنبال‌شده‌ها» is a people feed, not a poem pager. */
+    val isFollowedMode: Boolean get() = source.mode == FeedMode.Followed
 }
 
 /**
  * Endless feed of poems, loaded a few pages ahead, like the website's home: «همه» draws random
- * poems from all poets, «علاقه‌مندی‌ها» only from preferred poets.
+ * poems from all poets, «علاقه‌مندی‌ها» only from preferred poets. «دنبال‌شده‌ها» is handled
+ * by the screen itself (stories and posts), not this pager.
  */
 class FeedViewModel(
     private val repository: PoemRepository,
@@ -83,7 +87,7 @@ class FeedViewModel(
 
     private fun ensureLoaded() {
         val current = _state.value
-        if (job?.isActive == true || current.error != null || current.isFollowingEmpty) return
+        if (job?.isActive == true || current.error != null || current.isFollowingEmpty || current.isFollowedMode) return
         if (current.poems.size > visibleIndex + PREFETCH) return
         job = viewModelScope.launch {
             _state.update { it.copy(loading = true) }
@@ -107,6 +111,7 @@ class FeedViewModel(
     private suspend fun nextPoem(source: FeedSource): Poem = when (source.mode) {
         FeedMode.Following -> repository.randomPoem(source.followedKeys.randomOrNull())
         FeedMode.All -> repository.randomPoem(null)
+        FeedMode.Followed -> error("followed mode has no poem pager")
     }
 
     private companion object {
