@@ -46,7 +46,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.data.Poem
-import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 
@@ -72,18 +71,17 @@ class PoemChromeHost {
 
 val LocalPoemChromeHost = staticCompositionLocalOf { PoemChromeHost() }
 
-/** Space reserved under a poem so verses are not hidden by the pill and/or the phone destination bar. */
+/** Space reserved under a poem so verses are not hidden by the floating pill and/or the phone destination bar. */
 @Composable
 fun poemChromeBottomSpace(): Dp {
     val persistent = LocalPersistentNavPadding.current.calculateBottomPadding()
-    return if (usesSideNavigation) 16.dp else PoemControlsHeight + persistent
+    return PoemControlsHeight + persistent
 }
 
 /**
- * The poem's play / like / share / poet controls.
- * On the phone they stay a floating pill at the bottom of the poem (the menu
- * button is gone now that the destination bar is always on screen). On desktop
- * they move into the floating side nav and this pill is not drawn.
+ * The poem's play / like / share / poet controls as a floating pill at the
+ * bottom of the poem area, separate from the destination bar. The phone also
+ * clears the floating bottom nav via [LocalPersistentNavPadding].
  */
 @Composable
 fun BoxScope.PoemFloatingControls(
@@ -97,7 +95,6 @@ fun BoxScope.PoemFloatingControls(
     extra: (@Composable RowScope.() -> Unit)? = null,
 ) {
     PublishPoemChrome(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet)
-    if (usesSideNavigation) return
 
     val colors = MaterialTheme.colorScheme
     val persistentBottom = LocalPersistentNavPadding.current.calculateBottomPadding()
