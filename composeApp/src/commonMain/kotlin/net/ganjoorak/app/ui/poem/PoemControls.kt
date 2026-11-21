@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -46,6 +47,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.data.Poem
+import net.ganjoorak.app.platform.usesSideNavigation
+import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 
@@ -71,7 +74,7 @@ class PoemChromeHost {
 
 val LocalPoemChromeHost = staticCompositionLocalOf { PoemChromeHost() }
 
-/** Space reserved under a poem so verses are not hidden by the floating pill and/or the phone destination bar. */
+/** Space reserved under a poem so verses are not hidden by the floating chip or pill. */
 @Composable
 fun poemChromeBottomSpace(): Dp {
     val persistent = LocalPersistentNavPadding.current.calculateBottomPadding()
@@ -79,9 +82,8 @@ fun poemChromeBottomSpace(): Dp {
 }
 
 /**
- * The poem's play / like / share / poet controls as a floating pill at the
- * bottom of the poem area, separate from the destination bar. The phone also
- * clears the floating bottom nav via [LocalPersistentNavPadding].
+ * Dispatches to the phone chip bar (v0.1.2: menu / play / share-like-poet) or
+ * the desktop poem pill (play / share-like-poet only; destinations stay in the rail).
  */
 @Composable
 fun BoxScope.PoemFloatingControls(
@@ -94,16 +96,89 @@ fun BoxScope.PoemFloatingControls(
     onOpenPoet: ((String) -> Unit)?,
     extra: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    PublishPoemChrome(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet)
+    if (usesSideNavigation) {
+        DesktopPoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, extra)
+    } else {
+        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, extra)
+    }
+}
 
+/**
+ * Phone controls, matching tag v0.1.2: a compact bar of three groups —
+ * «menu», «play» (a capsule that spells out «در حال پخش» while playing) and
+ * «share, like, poet», right to left. Search lives in the menu. The menu chip
+ * stays visible even when there is no poem (empty or «دنبال‌شده‌ها» feed).
+ */
+@Composable
+private fun BoxScope.PhonePoemFloatingControls(
+    poem: Poem?,
+    isSaved: Boolean,
+    isPlaying: Boolean,
+    onToggleSave: () -> Unit,
+    onShare: () -> Unit,
+    onPlay: () -> Unit,
+    onOpenPoet: ((String) -> Unit)?,
+    extra: (@Composable RowScope.() -> Unit)?,
+) {
+    val app = LocalAppActions.current
     val colors = MaterialTheme.colorScheme
-    val persistentBottom = LocalPersistentNavPadding.current.calculateBottomPadding()
     Row(
         Modifier
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 10.dp + persistentBottom),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
+        if (poem != null) {
+            if (poem.recitations.isNotEmpty()) {
+                Pill { PlayCapsule(isPlaying, onPlay) }
+            }
+            Pill {
+                extra?.invoke(this)
+                BarIcon(Icons.Filled.Share, "هم‌رسانی", onShare)
+                BarIcon(
+                    if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
+                    onToggleSave,
+                    tint = if (isSaved) colors.error else null,
+                )
+                val key = poem.poetKey
+                if (key != null && onOpenPoet != null) {
+                    BarItem(onClick = { onOpenPoet(key) }, description = poem.poetName) {
+                        PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Desktop poem pill: play / like / share / poet only, separate from the side rail.
+ */
+@Composable
+private fun BoxScope.DesktopPoemFloatingControls(
+    poem: Poem?,
+    isSaved: Boolean,
+    isPlaying: Boolean,
+    onToggleSave: () -> Unit,
+    onShare: () -> Unit,
+    onPlay: () -> Unit,
+    onOpenPoet: ((String) -> Unit)?,
+    extra: (@Composable RowScope.() -> Unit)?,
+) {
+    PublishPoemChrome(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet)
+
+    val colors = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {

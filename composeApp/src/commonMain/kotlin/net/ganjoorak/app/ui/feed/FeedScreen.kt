@@ -57,6 +57,7 @@ import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.data.local.FeedMode
+import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.LoadingBox
 import net.ganjoorak.app.ui.components.SegmentedSwitch
@@ -157,7 +158,10 @@ fun FeedScreen(
         }
         }
 
-        if (!state.isFollowedMode && !state.isFollowingEmpty) PoemFloatingControls(
+        // Desktop hides the poem pill on followed/empty feeds (the rail remains).
+        // Phone always shows the v0.1.2 chip so the menu stays reachable.
+        val showPoemChrome = !usesSideNavigation || (!state.isFollowedMode && !state.isFollowingEmpty)
+        if (showPoemChrome) PoemFloatingControls(
             poem = current,
             isSaved = current != null && saved.any { it.ref == current.ref },
             isPlaying = current != null && player.poemRef == current.ref && player.isPlaying,
