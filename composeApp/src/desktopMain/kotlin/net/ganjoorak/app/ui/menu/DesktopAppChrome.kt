@@ -1,10 +1,7 @@
 package net.ganjoorak.app.ui.menu
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -15,10 +12,10 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
 /**
- * Desktop window chrome: full-width RTL content, with the destination rail
- * on the physical right edge and the poem-action group just to its left.
- * Both are vertically centered and visually separate. There is no bottom
- * poem pill and no poem chrome in the header.
+ * Desktop window chrome: full-width RTL content, with a wide navigation rail
+ * flush to the physical right (RTL leading) edge, expanding over the content and a separate poem-action toolbar
+ * just to its left. There is no reserved gutter, no bottom poem pill, and no poem
+ * chrome in the header.
  */
 @Composable
 fun DesktopAppChrome(
@@ -38,24 +35,20 @@ fun DesktopAppChrome(
                     miniPlayer()
                 }
             }
-            // The row stays LTR so the rail sits on the physical right edge
-            // and the poem group is just to its left, both vertically centered.
-            Row(
+            DesktopPoemActionGroup(
                 Modifier
                     .align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-                    .padding(FloatingNavMargin),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(FloatingChromeGap),
-            ) {
-                DesktopPoemActionGroup()
+                    .padding(end = DesktopCollapsedRailWidth + PoemToolbarToRailGap),
+            )
+            // RTL so the rail's leading edge and the expanded modal sit on the right.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 AppFloatingSideNav(
                     current = current,
                     favoritesCount = favoritesCount,
                     hasUnseenStories = hasUnseenStories,
                     onSelect = onSelect,
                     onOpenSearch = onOpenSearch,
-                    modifier = Modifier.fillMaxHeight(),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }
