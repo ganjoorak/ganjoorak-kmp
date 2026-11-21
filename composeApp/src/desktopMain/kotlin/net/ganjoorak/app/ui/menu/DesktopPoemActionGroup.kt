@@ -1,15 +1,10 @@
 package net.ganjoorak.app.ui.menu
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -17,29 +12,27 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.poem.LocalPoemChromeHost
 
-private val GroupWidth = 52.dp
-private val GroupShape = RoundedCornerShape(26.dp)
+private val GroupWidth = 64.dp
+private val GroupShape = RoundedCornerShape(50)
 
 /**
- * Desktop-only poem actions: a compact vertical floating group, sitting
- * just to the left of the destination rail. Poet, like and share always;
- * play only when the poem has audio. Hidden when no poem is on screen.
+ * Desktop-only poem actions, styled like a low-emphasis M3E vertical floating
+ * toolbar. Poet, like and share always; play is featured when the poem has
+ * audio. Hidden when no poem is on screen. Sits on the right, separate from
+ * the destination rail.
  */
 @Composable
 fun DesktopPoemActionGroup(modifier: Modifier = Modifier) {
@@ -50,75 +43,51 @@ fun DesktopPoemActionGroup(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.width(GroupWidth),
         shape = GroupShape,
-        color = colors.surfaceContainerHigh,
-        shadowElevation = 6.dp,
-        tonalElevation = 2.dp,
+        color = colors.surfaceContainer,
+        shadowElevation = 3.dp,
+        tonalElevation = 0.dp,
     ) {
         Column(
-            Modifier.padding(vertical = 10.dp),
+            Modifier.padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (poetKey != null && chrome.onOpenPoet != null) {
-                GroupItem(onClick = { chrome.onOpenPoet.invoke(poetKey) }, description = poem.poetName) {
+                IconButton(onClick = { chrome.onOpenPoet.invoke(poetKey) }) {
                     PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
                 }
             }
-            GroupItem(
-                onClick = chrome.onToggleSave,
-                description = if (chrome.isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-            ) {
+            IconButton(onClick = chrome.onToggleSave) {
                 Icon(
                     if (chrome.isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     contentDescription = if (chrome.isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
                     tint = if (chrome.isSaved) colors.error else colors.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
                 )
             }
-            GroupItem(onClick = chrome.onShare, description = "هم‌رسانی") {
+            IconButton(onClick = chrome.onShare) {
                 Icon(
                     Icons.Filled.Share,
                     contentDescription = "هم‌رسانی",
                     tint = colors.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
                 )
             }
             if (poem.recitations.isNotEmpty()) {
-                val container by animateColorAsState(if (chrome.isPlaying) colors.primary else Color.Transparent)
-                val content by animateColorAsState(
-                    if (chrome.isPlaying) colors.onPrimary else colors.onSurfaceVariant,
-                )
-                GroupItem(
+                FilledIconButton(
                     onClick = chrome.onPlay,
-                    description = if (chrome.isPlaying) "توقف خوانش" else "پخش خوانش",
-                    indicator = container,
+                    modifier = Modifier.size(width = 48.dp, height = 56.dp),
+                    colors = if (chrome.isPlaying) {
+                        IconButtonDefaults.filledIconButtonColors()
+                    } else {
+                        IconButtonDefaults.filledTonalIconButtonColors()
+                    },
+                    shape = RoundedCornerShape(28.dp),
                 ) {
                     Icon(
                         if (chrome.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = if (chrome.isPlaying) "توقف خوانش" else "پخش خوانش",
-                        tint = content,
-                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun GroupItem(
-    onClick: () -> Unit,
-    description: String,
-    indicator: Color = Color.Transparent,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(indicator)
-            .semantics { contentDescription = description }
-            .selectable(selected = false, role = Role.Button, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { content() }
 }
