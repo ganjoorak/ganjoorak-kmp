@@ -157,7 +157,9 @@ private fun BoxScope.PhonePoemFloatingControls(
 }
 
 /**
- * Desktop poem pill: play / like / share / poet only, separate from the side rail.
+ * Desktop: publish the current poem's actions for [net.ganjoorak.app.ui.menu.DesktopPoemActionGroup]
+ * to draw as a vertical floating group next to the rail. No bottom pill and no
+ * header chrome — those belong only to the phone chip bar.
  */
 @Composable
 private fun BoxScope.DesktopPoemFloatingControls(
@@ -170,40 +172,8 @@ private fun BoxScope.DesktopPoemFloatingControls(
     onOpenPoet: ((String) -> Unit)?,
     extra: (@Composable RowScope.() -> Unit)?,
 ) {
+    // [extra] is phone-only (the v0.1.2 chip); desktop does not render it here.
     PublishPoemChrome(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet)
-
-    val colors = MaterialTheme.colorScheme
-    Row(
-        Modifier
-            .align(Alignment.BottomCenter)
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (poem != null) {
-            if (poem.recitations.isNotEmpty()) {
-                Pill { PlayCapsule(isPlaying, onPlay) }
-            }
-            Pill {
-                extra?.invoke(this)
-                BarIcon(Icons.Filled.Share, "هم‌رسانی", onShare)
-                BarIcon(
-                    if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-                    onToggleSave,
-                    tint = if (isSaved) colors.error else null,
-                )
-                val key = poem.poetKey
-                if (key != null && onOpenPoet != null) {
-                    BarItem(onClick = { onOpenPoet(key) }, description = poem.poetName) {
-                        PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
-                    }
-                }
-            }
-        }
-    }
 }
 
 /** One floating group of the bar. */
