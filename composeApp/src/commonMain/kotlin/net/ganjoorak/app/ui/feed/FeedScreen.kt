@@ -159,10 +159,12 @@ fun FeedScreen(
         }
 
         // Desktop hides the poem pill on followed/empty feeds (the rail remains).
-        // Phone always shows the v0.1.2 chip so the menu stays reachable.
-        val showPoemChrome = !usesSideNavigation || (!state.isFollowedMode && !state.isFollowingEmpty)
+        // Phone always shows the v0.1.2 menu chip; the previous poem's actions
+        // are omitted so they cannot sit on top of those feeds.
+        val hidePoemActions = state.isFollowedMode || state.isFollowingEmpty
+        val showPoemChrome = !usesSideNavigation || !hidePoemActions
         if (showPoemChrome) PoemFloatingControls(
-            poem = current,
+            poem = current.takeUnless { hidePoemActions },
             isSaved = current != null && saved.any { it.ref == current.ref },
             isPlaying = current != null && player.poemRef == current.ref && player.isPlaying,
             onToggleSave = { current?.let(graph.library::toggleSaved) },
