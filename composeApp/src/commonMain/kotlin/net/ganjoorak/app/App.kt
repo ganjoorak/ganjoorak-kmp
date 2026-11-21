@@ -1,16 +1,12 @@
 package net.ganjoorak.app
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,10 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -44,11 +37,9 @@ import net.ganjoorak.app.ui.components.AppActions
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.explore.ExploreScreen
 import net.ganjoorak.app.ui.feed.FeedScreen
-import net.ganjoorak.app.ui.menu.AppFloatingBottomNav
-import net.ganjoorak.app.ui.menu.AppFloatingSideNav
+import net.ganjoorak.app.ui.menu.AppLayoutChrome
+import net.ganjoorak.app.ui.menu.AppMenu
 import net.ganjoorak.app.ui.menu.FeedPoetsSheet
-import net.ganjoorak.app.ui.menu.FloatingNavMargin
-import net.ganjoorak.app.ui.menu.FloatingNavOccupiedBottom
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.menu.MenuTarget
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
@@ -65,7 +56,6 @@ import net.ganjoorak.app.ui.saved.FavoritesSection
 import net.ganjoorak.app.ui.search.SearchScreen
 import net.ganjoorak.app.ui.settings.SettingsScreen
 import net.ganjoorak.app.ui.stories.StoryViewer
-import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.theme.GanjoorakTheme
 
 /** Root composable shared by every platform. */
@@ -87,11 +77,10 @@ fun App() {
 }
 
 /**
- * Persistent destination chrome, shared across platforms: a floating vertical
- * bar on the physical right of desktop windows, and a floating bottom bar on
- * the phone. Search is a compact top action on desktop and lives on Explore
- * on the phone. Poem play/like/share move into the desktop bar when a poem
- * is on screen; the phone keeps its bottom pill.
+ * Shared shell: the back stack, mini-player, and (on the phone) the v0.1.2
+ * menu sheet opened from the bottom chip. Persistent chrome is provided by
+ * [AppLayoutChrome], which is a phone column on Android and the desktop rail
+ * overlay in desktopMain.
  */
 @Composable
 private fun AppShell() {
@@ -104,6 +93,7 @@ private fun AppShell() {
     val settings by graph.settings.settings.collectAsState()
     val poemChromeHost = remember { PoemChromeHost() }
 
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     val goTo: (AppRoute) -> Unit = { route -> backStack.switchTo(route) }
     val openSearch = { backStack.open(SearchRoute, singleTop = true) }
     val selectMenu: (MenuTarget) -> Unit = { target ->
@@ -118,82 +108,50 @@ private fun AppShell() {
         }
     }
     val actions = AppActions(
+        openMenu = { menuOpen = true },
         openSearch = openSearch,
         openStories = { people, index -> storyViewer = people to index },
     )
 
-    val persistentPadding = if (usesSideNavigation) {
-        // Overlay the rail; do not reserve a right-hand gutter for poems or lists.
-        PaddingValues(0.dp)
-    } else {
-        PaddingValues(bottom = FloatingNavOccupiedBottom)
-    }
-
     CompositionLocalProvider(
         LocalAppActions provides actions,
         LocalPoemChromeHost provides poemChromeHost,
-        LocalPersistentNavPadding provides persistentPadding,
+        LocalPersistentNavPadding provides PaddingValues(0.dp),
     ) {
-        if (usesSideNavigation) {
-            // Overlay the floating bar on the physical right; keep content RTL and full-width.
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Box(Modifier.fillMaxSize()) {
-                    Column(Modifier.fillMaxSize()) {
-                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                            Box(Modifier.weight(1f)) {
-                                AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
-                            }
-                            MiniPlayer(
-                                graph.player,
-                                onOpenPoem = { backStack.open(it.route()) },
-                                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                            )
-                        }
-                    }
-                    Box(
-                        Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxHeight()
-                            .padding(FloatingNavMargin),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                            AppFloatingSideNav(
-                                current = current?.menuTarget(),
-                                favoritesCount = settings.followedPoets.size,
-                                hasUnseenStories = storyState.hasUnseen,
-                                onSelect = selectMenu,
-                                onOpenSearch = openSearch,
-                                modifier = Modifier.fillMaxHeight(),
-                            )
-                        }
-                    }
-                }
-            }
-        } else {
-            Box(Modifier.fillMaxSize()) {
-                Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f)) {
-                        AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true })
-                    }
-                    MiniPlayer(
-                        graph.player,
-                        onOpenPoem = { backStack.open(it.route()) },
-                        modifier = Modifier
-                            .windowInsetsPadding(WindowInsets.navigationBars)
-                            .padding(bottom = FloatingNavOccupiedBottom),
-                    )
-                }
-                AppFloatingBottomNav(
+        AppLayoutChrome(
+            current = current?.menuTarget(),
+            favoritesCount = settings.followedPoets.size,
+            hasUnseenStories = storyState.hasUnseen,
+            onSelect = selectMenu,
+            onOpenSearch = openSearch,
+            navContent = { AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true }) },
+            miniPlayer = {
+                MiniPlayer(
+                    graph.player,
+                    onOpenPoem = { backStack.open(it.route()) },
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                )
+            },
+        )
+
+        if (menuOpen) {
+            ModalBottomSheet(
+                onDismissRequest = { menuOpen = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ) {
+                AppMenu(
                     current = current?.menuTarget(),
-                    favoritesCount = settings.followedPoets.size,
-                    hasUnseenStories = storyState.hasUnseen,
-                    onSelect = selectMenu,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(horizontal = FloatingNavMargin, vertical = FloatingNavMargin),
+                    onSelect = { target ->
+                        menuOpen = false
+                        selectMenu(target)
+                    },
+                    onClose = { menuOpen = false },
+                    stories = storyState.people,
+                    isUnseen = storyState::isUnseen,
+                    onOpenStory = { index ->
+                        menuOpen = false
+                        storyViewer = storyState.people to index
+                    },
                 )
             }
         }

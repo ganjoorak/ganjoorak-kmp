@@ -57,6 +57,7 @@ import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.data.local.FeedMode
+import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.LoadingBox
 import net.ganjoorak.app.ui.components.SegmentedSwitch
@@ -157,8 +158,13 @@ fun FeedScreen(
         }
         }
 
-        if (!state.isFollowedMode && !state.isFollowingEmpty) PoemFloatingControls(
-            poem = current,
+        // Desktop hides the poem pill on followed/empty feeds (the rail remains).
+        // Phone always shows the v0.1.2 menu chip; the previous poem's actions
+        // are omitted so they cannot sit on top of those feeds.
+        val hidePoemActions = state.isFollowedMode || state.isFollowingEmpty
+        val showPoemChrome = !usesSideNavigation || !hidePoemActions
+        if (showPoemChrome) PoemFloatingControls(
+            poem = current.takeUnless { hidePoemActions },
             isSaved = current != null && saved.any { it.ref == current.ref },
             isPlaying = current != null && player.poemRef == current.ref && player.isPlaying,
             onToggleSave = { current?.let(graph.library::toggleSaved) },

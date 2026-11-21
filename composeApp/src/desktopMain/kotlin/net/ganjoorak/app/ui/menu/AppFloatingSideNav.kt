@@ -5,10 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,12 +27,9 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,43 +39,27 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.util.toPersianDigits
 
-/** Gap between the floating nav card and the window edge. */
+/** Gap between the floating rail and the window edge. Desktop only. */
 val FloatingNavMargin = 12.dp
 
 /** Width of the desktop vertical bar, not counting [FloatingNavMargin] on either side. */
 val FloatingNavWidth = 64.dp
 
-/** Height of the phone bar, not counting [FloatingNavMargin] on either side. */
-val FloatingNavHeight = 72.dp
-
-val FloatingNavOccupiedEnd: Dp = FloatingNavWidth + FloatingNavMargin * 2
-val FloatingNavOccupiedBottom: Dp = FloatingNavHeight + FloatingNavMargin * 2
-
 private val FloatingNavShape = RoundedCornerShape(32.dp)
 private val FloatingNavElevation = 6.dp
 
-/**
- * Extra padding the shell reserves so content is not hidden under the floating
- * destination bar. The phone sets a bottom inset; on desktop the rail overlays
- * the content and no end inset is reserved, so poems can use the full width.
- */
-val LocalPersistentNavPadding = compositionLocalOf { PaddingValues(0.dp) }
-
-data class NavDestination(
+private data class NavDestination(
     val target: MenuTarget,
     val icon: ImageVector,
     val selectedIcon: ImageVector = icon,
     val label: String,
 )
 
-/** The five primary destinations shared by the desktop side bar and the phone bottom bar. */
-val PrimaryDestinations = listOf(
+/** The five primary destinations of the desktop side rail. */
+private val PrimaryDestinations = listOf(
     NavDestination(MenuTarget.Home, Icons.Filled.Home, label = "صفحهٔ اصلی"),
     NavDestination(MenuTarget.Explore, Icons.Filled.Explore, label = "کاوش"),
     NavDestination(MenuTarget.Poets, Icons.Filled.People, label = "شاعران"),
@@ -174,63 +152,6 @@ private fun CompactRailItem(
                 .background(indicator),
             contentAlignment = Alignment.Center,
         ) { icon() }
-    }
-}
-
-
-/**
- * Phone: a horizontal rounded card of the same five destinations, floating
- * above the system navigation bar with the same margins and elevation.
- */
-@Composable
-fun AppFloatingBottomNav(
-    current: MenuTarget?,
-    favoritesCount: Int,
-    hasUnseenStories: Boolean,
-    onSelect: (MenuTarget) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = MaterialTheme.colorScheme
-    val itemColors = NavigationBarItemDefaults.colors(
-        indicatorColor = colors.secondaryContainer,
-    )
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = FloatingNavShape,
-        color = colors.surfaceContainerHigh,
-        shadowElevation = FloatingNavElevation,
-        tonalElevation = 2.dp,
-    ) {
-        Row(
-            Modifier.fillMaxWidth().height(FloatingNavHeight).padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            for (item in PrimaryDestinations) {
-                NavigationBarItem(
-                    selected = current == item.target,
-                    onClick = { onSelect(item.target) },
-                    colors = itemColors,
-                    modifier = Modifier.weight(1f),
-                    icon = {
-                        DestinationIcon(
-                            item = item,
-                            selected = current == item.target,
-                            badge = destinationBadge(item.target, favoritesCount, hasUnseenStories),
-                        )
-                    },
-                    label = {
-                        Text(
-                            item.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            textAlign = TextAlign.Center,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    alwaysShowLabel = true,
-                )
-            }
-        }
     }
 }
 
