@@ -33,11 +33,15 @@ class AppGraph {
     /** Plain client for Coil: no JSON defaults, same explicit engine. */
     val imageHttp: HttpClient by lazy { HttpClient(httpEngine()) }
 
+    val offline = net.ganjoorak.app.data.offline.OfflineLibrary(net.ganjoorak.app.platform.offlineByteStore())
+
     val repository = PoemRepository(
         api = GanjoorApi(http),
         echolalia = EcholaliaSource(EcholaliaApi(http)),
         local = LocalSource { slug -> Res.readBytes("files/poems/$slug.json").decodeToString() },
+        offline = offline,
     )
+    val downloads = net.ganjoorak.app.data.offline.OfflineDownloader(repository, offline, scope)
     val settings = SettingsStore(storage)
     val library = LibraryStore(storage)
     val accounts = AccountRepository(

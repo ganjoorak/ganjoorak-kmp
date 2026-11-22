@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.core.content.FileProvider
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.okhttp.OkHttp
+import net.ganjoorak.app.data.offline.ByteStore
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.media3.common.AudioAttributes
@@ -105,3 +106,33 @@ actual fun shareImage(png: ByteArray, fileName: String): String? {
 actual fun currentTimeMillis(): Long = System.currentTimeMillis()
 
 actual val usesSideNavigation: Boolean = false
+
+/** Durable across app updates, unlike cacheDir. */
+actual fun offlineByteStore(): ByteStore =
+    FileByteStore(File(AndroidPlatform.context.filesDir, "offline"))
+
+/** Blocking file-backed [ByteStore]; offline content is small JSON files. */
+private class FileByteStore(private val root: File) : ByteStore {
+    init { root.mkdirs() }
+    private fun file(path: String) = File(root, path)
+
+    override suspend fun write(path: String, bytes: ByteArray) {
+        val f = file(path)
+        f.parentFile?.mkdirs()
+        f.writeBytes(bytes)
+    }
+
+    override suspend fun read(path: String): ByteArray? = file(path).takeIf { it.isFile }?.readBytes()
+
+    override suspend fun delete(path: String): Boolean = file(path).delete()
+
+    override suspend fun list(prefix: String): List<String> =
+        root.walkTopDown().filter { it.isFile }
+            .map { it.relativeTo(root).invariantSeparatorsPath }
+            .filter { it.startsWith(prefix) }
+            .toList()
+
+    override suspend fun exists(path: String): Boolean = file(path).isFile
+
+    override suspend fun length(path: String): Long? = file(path).takeIf { it.isFile }?.length()
+}

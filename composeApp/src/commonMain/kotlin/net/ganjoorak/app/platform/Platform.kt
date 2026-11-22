@@ -38,6 +38,9 @@ expect fun shareImage(png: ByteArray, fileName: String): String?
 /** Wall-clock milliseconds since the Unix epoch. */
 expect fun currentTimeMillis(): Long
 
+/** Durable storage for offline poems and books; lives in app data, never cacheDir. */
+expect fun offlineByteStore(): net.ganjoorak.app.data.offline.ByteStore
+
 /**
  * Desktop windows get a floating vertical destination bar on the physical right.
  * Phones get the same destinations in a floating bottom bar. A desktop QA hook,

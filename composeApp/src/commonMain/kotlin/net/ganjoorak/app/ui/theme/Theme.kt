@@ -25,6 +25,7 @@ import net.ganjoorak.app.data.local.PoemFont
 import net.ganjoorak.app.data.local.ThemeMode
 import net.ganjoorak.app.resources.Res
 import net.ganjoorak.app.resources.gandom
+import net.ganjoorak.app.resources.irannastaliq
 import net.ganjoorak.app.resources.nahid
 import net.ganjoorak.app.resources.parastoo
 import net.ganjoorak.app.resources.sahel
@@ -134,6 +135,8 @@ data class PoemStyle(
     val layout: CoupletLayout,
     val showVerseNumbers: Boolean,
     val autoScroll: Boolean,
+    /** IranNastaliq glyphs span about 2.4 em, so verses need looser lines than the other fonts. */
+    val lineHeightMultiplier: Float = 1.9f,
 )
 
 val LocalPoemStyle = staticCompositionLocalOf {
@@ -149,6 +152,7 @@ fun fontLabel(font: PoemFont): String = when (font) {
     PoemFont.Parastoo -> "پرستو"
     PoemFont.Sahel -> "ساحل"
     PoemFont.Nahid -> "ناهید"
+    PoemFont.IranNastaliq -> "ایران نستعلیق"
 }
 
 @Composable
@@ -163,6 +167,7 @@ fun fontFamilyFor(font: PoemFont): FontFamily = FontFamily(
             PoemFont.Parastoo -> Res.font.parastoo
             PoemFont.Sahel -> Res.font.sahel
             PoemFont.Nahid -> Res.font.nahid
+            PoemFont.IranNastaliq -> Res.font.irannastaliq
         },
     ),
 )
@@ -204,6 +209,7 @@ fun GanjoorakTheme(settings: AppSettings, content: @Composable () -> Unit) {
         layout = settings.coupletLayout,
         showVerseNumbers = settings.showVerseNumbers,
         autoScroll = settings.autoScrollWithAudio,
+        lineHeightMultiplier = if (settings.poemFont == PoemFont.IranNastaliq) 2.4f else 1.9f,
     )
 
     SystemBarsEffect(lightBackground = !dark)

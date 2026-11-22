@@ -12,25 +12,24 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.FilledIconButton
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,13 +39,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.CategoryRef
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemBlock
 import net.ganjoorak.app.data.Verse
 import net.ganjoorak.app.data.local.CoupletLayout
 import net.ganjoorak.app.platform.usesSideNavigation
-import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.ui.theme.PoemStyle
 import net.ganjoorak.app.util.toPersianDigits
@@ -119,72 +119,47 @@ fun PoemHeader(
                 )
             }
         }
-        if (usesSideNavigation) {
-            val chrome = LocalPoemChromeHost.current.current
-            if (chrome != null && chrome.poem.ref == poem.ref) {
-                Spacer(Modifier.height(6.dp))
-                DesktopPoemActionRow(chrome)
-            }
+        // Phones have no rail column for poem actions, so the header hosts the
+        // offline download for the shown poem.
+        if (!usesSideNavigation) {
+            PoemDownloadButton(poem)
         }
     }
 }
 
 /**
- * Desktop-only, in-flow under the title: a low-emphasis M3E-style horizontal
- * toolbar (1.9.0 only: [Surface], [IconButton], [FilledIconButton]). Poet, like
- * and share always; play is featured and only shown when the poem has audio.
+ * Phone-only download for a single poem, matching the desktop rail download:
+ * a tap saves the poem as its own item, a second tap removes just that item,
+ * and a poem saved only inside a book or poet item shows the saved state
+ * without ever taking the parent apart.
  */
 @Composable
-private fun DesktopPoemActionRow(chrome: PoemChrome, modifier: Modifier = Modifier) {
-    val poem = chrome.poem
-    val colors = MaterialTheme.colorScheme
-    val poetKey = poem.poetKey
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = colors.surfaceContainer,
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp,
+private fun PoemDownloadButton(poem: Poem) {
+    val downloads = AppGraph.instance.downloads
+    val items by downloads.items.collectAsState()
+    val jobs by downloads.active.collectAsState()
+    val scope = rememberCoroutineScope()
+    val poemId = "poem:${poem.ref.key}"
+    val savedAlone = items.any { it.id == poemId }
+    val saved = savedAlone || items.any { poem.ref in it.completedRefs }
+    val working = jobs.any { job -> items.any { it.id == job.itemId && poem.ref in it.totalRefs } }
+    IconButton(
+        onClick = {
+            when {
+                working -> Unit
+                savedAlone -> downloads.remove(poemId)
+                else -> scope.launch { downloads.downloadPoem(poem) }
+            }
+        },
     ) {
-        Row(
-            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (poetKey != null && chrome.onOpenPoet != null) {
-                IconButton(onClick = { chrome.onOpenPoet.invoke(poetKey) }) {
-                    PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
-                }
-            }
-            IconButton(onClick = chrome.onToggleSave) {
-                Icon(
-                    if (chrome.isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = if (chrome.isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-                    tint = if (chrome.isSaved) colors.error else colors.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = chrome.onShare) {
-                Icon(
-                    Icons.Filled.Share,
-                    contentDescription = "هم‌رسانی",
-                    tint = colors.onSurfaceVariant,
-                )
-            }
-            if (poem.recitations.isNotEmpty()) {
-                FilledIconButton(
-                    onClick = chrome.onPlay,
-                    colors = if (chrome.isPlaying) {
-                        IconButtonDefaults.filledIconButtonColors()
-                    } else {
-                        IconButtonDefaults.filledTonalIconButtonColors()
-                    },
-                ) {
-                    Icon(
-                        if (chrome.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (chrome.isPlaying) "توقف خوانش" else "پخش خوانش",
-                    )
-                }
-            }
+        if (working) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(
+                if (saved) Icons.Filled.Check else Icons.Filled.Download,
+                contentDescription = if (savedAlone) "حذف از دستگاه" else "بارگیری برای خواندن آفلاین",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -235,7 +210,7 @@ fun PoemBlockView(
     val base = TextStyle(
         fontFamily = style.fontFamily,
         fontSize = style.fontSize,
-        lineHeight = style.fontSize * 1.9f,
+        lineHeight = style.fontSize * style.lineHeightMultiplier,
         color = MaterialTheme.colorScheme.onSurface,
     )
     Row(
@@ -271,7 +246,7 @@ fun PoemBlockView(
                 is PoemBlock.Line -> VerseText(block.verse, base, TextAlign.Center, activeVerse, onVerseClick, onVerseLongClick, isLineSelected, Modifier.fillMaxWidth())
                 is PoemBlock.Prose -> VerseText(
                     block.verse,
-                    base.copy(lineHeight = style.fontSize * 1.7f),
+                    base.copy(lineHeight = style.fontSize * (style.lineHeightMultiplier - 0.2f)),
                     TextAlign.Justify,
                     activeVerse,
                     onVerseClick,

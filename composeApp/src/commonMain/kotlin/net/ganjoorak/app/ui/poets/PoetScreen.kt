@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
@@ -88,6 +89,11 @@ fun PoetScreen(
         onBack = onBack,
         actions = {
             if (detail != null) {
+                OfflineDownloadAction(
+                    itemId = "poet:${detail.poet.key}",
+                    description = "بارگیری آثار برای خواندن آفلاین",
+                    start = { graph.downloads.downloadPoet(detail) },
+                )
                 IconButton(onClick = { shareText("${detail.poet.name}\n${poetUrl(detail)}", detail.poet.name) }) {
                     Icon(Icons.Filled.Share, contentDescription = "اشتراک‌گذاری")
                 }
@@ -133,6 +139,31 @@ private fun poetUrl(detail: PoetDetail): String = when (detail.poet.source) {
     PoetSource.Ganjoor -> "https://ganjoorak.ir/${detail.poet.slug}"
     PoetSource.Echolalia -> "https://ganjoorak.ir/echolalia/${detail.poet.slug}"
     PoetSource.Local -> "https://ganjoorak.ir/${detail.poet.slug}"
+}
+
+/**
+ * Downloads one offline item (a poet's works or a book) for offline reading.
+ * A completed item switches to a check state and is removed on the next tap;
+ * while its job runs, taps are ignored.
+ */
+@Composable
+fun OfflineDownloadAction(itemId: String, description: String, start: () -> Unit) {
+    val downloads = AppGraph.instance.downloads
+    val items by downloads.items.collectAsState()
+    val active by downloads.active.collectAsState()
+    val complete = items.any { it.id == itemId && it.complete }
+    if (active.any { it.itemId == itemId }) {
+        IconButton(onClick = {}) {
+            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+        }
+    } else {
+        IconButton(onClick = { if (complete) downloads.remove(itemId) else start() }) {
+            Icon(
+                if (complete) Icons.Filled.Check else Icons.Filled.Download,
+                contentDescription = description,
+            )
+        }
+    }
 }
 
 /** The site's poet card: identity, a row of stats, follow and random poem, then the bio. */
