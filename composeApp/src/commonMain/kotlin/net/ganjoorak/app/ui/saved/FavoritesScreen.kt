@@ -1,5 +1,13 @@
 package net.ganjoorak.app.ui.saved
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -130,26 +136,51 @@ fun FavoritesScreen(
             }
         },
     ) {
-        when (section) {
-            FavoritesSection.Poems -> poemsContent(
-                tab = poemTab,
-                entries = if (poemTab == PoemLibraryTab.Saved) saved else history,
-                onOpenPoem = onOpenPoem,
-                onOpenFeed = onOpenFeed,
-                onRemove = if (poemTab == PoemLibraryTab.Saved) { poem -> library.remove(poem.ref) } else null,
-            )
-            FavoritesSection.Poets -> poetsContent(
-                poets = poets,
-                onOpenPoet = onOpenPoet,
-                onOpenPoets = onOpenPoets,
-                onEditFollowing = onEditFollowing,
-                onUnfollow = { store.unfollow(it) },
-            )
+        item {
+            AnimatedContent(
+                targetState = section to poemTab,
+                label = "favoritesBody",
+                transitionSpec = {
+                    // RTL: same rule as the feed, a higher index enters from the left
+                    // and pushes the old pane out to the right.
+                    val from = initialState.first.ordinal * PoemLibraryTab.entries.size + initialState.second.ordinal
+                    val to = targetState.first.ordinal * PoemLibraryTab.entries.size + targetState.second.ordinal
+                    if (to > from) {
+                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
+                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it }) togetherWith
+                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
+                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it })
+                    } else {
+                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
+                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it }) togetherWith
+                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
+                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it })
+                    }
+                },
+            ) { (pane, tab) ->
+                when (pane) {
+                    FavoritesSection.Poems -> poemsContent(
+                        tab = tab,
+                        entries = if (tab == PoemLibraryTab.Saved) saved else history,
+                        onOpenPoem = onOpenPoem,
+                        onOpenFeed = onOpenFeed,
+                        onRemove = if (tab == PoemLibraryTab.Saved) { poem -> library.remove(poem.ref) } else null,
+                    )
+                    FavoritesSection.Poets -> poetsContent(
+                        poets = poets,
+                        onOpenPoet = onOpenPoet,
+                        onOpenPoets = onOpenPoets,
+                        onEditFollowing = onEditFollowing,
+                        onUnfollow = { store.unfollow(it) },
+                    )
+                }
+            }
         }
     }
 }
 
-private fun LazyListScope.poemsContent(
+@Composable
+private fun poemsContent(
     tab: PoemLibraryTab,
     entries: List<SavedPoem>,
     onOpenPoem: (PoemRef) -> Unit,
@@ -157,35 +188,36 @@ private fun LazyListScope.poemsContent(
     onRemove: ((SavedPoem) -> Unit)?,
 ) {
     if (entries.isEmpty()) {
-        item(key = "empty-$tab") {
-            if (tab == PoemLibraryTab.Saved) {
-                MessageBox(
-                    Icons.Filled.FavoriteBorder,
-                    "هنوز شعری ذخیره نکرده‌اید",
-                    Modifier.height(320.dp),
-                    body = "روی آیکن قلب در صفحهٔ شعر بزنید تا اینجا بماند.",
-                    action = { Button(onClick = onOpenFeed) { Text("رفتن به فید") } },
-                )
-            } else {
-                MessageBox(Icons.Filled.History, "هنوز شعری نخوانده‌اید", Modifier.height(320.dp))
-            }
+        if (tab == PoemLibraryTab.Saved) {
+            MessageBox(
+                Icons.Filled.FavoriteBorder,
+                "هنوز شعری ذخیره نکرده‌اید",
+                Modifier.height(320.dp),
+                body = "روی آیکن قلب در صفحهٔ شعر بزنید تا اینجا بماند.",
+                action = { Button(onClick = onOpenFeed) { Text("رفتن به فید") } },
+            )
+        } else {
+            MessageBox(Icons.Filled.History, "هنوز شعری نخوانده‌اید", Modifier.height(320.dp))
         }
     } else {
-        items(entries, key = { "$tab-${it.ref.key}" }) { poem ->
-            AppRow(
-                title = poem.title,
-                meta = listOf(poem.poetName, poem.excerpt).filter { it.isNotBlank() }.joinToString(" · "),
-                trailing = onRemove?.let { remove ->
-                    @Composable { IconButton(onClick = { remove(poem) }) { Icon(Icons.Outlined.Delete, contentDescription = "حذف") } }
-                },
-                onClick = { onOpenPoem(poem.ref) },
-                modifier = Modifier.fillMaxWidth(),
-            )
+        Column(Modifier.fillMaxWidth()) {
+            entries.forEach { poem ->
+                AppRow(
+                    title = poem.title,
+                    meta = listOf(poem.poetName, poem.excerpt).filter { it.isNotBlank() }.joinToString(" · "),
+                    trailing = onRemove?.let { remove ->
+                        @Composable { IconButton(onClick = { remove(poem) }) { Icon(Icons.Outlined.Delete, contentDescription = "حذف") } }
+                    },
+                    onClick = { onOpenPoem(poem.ref) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
 
-private fun LazyListScope.poetsContent(
+@Composable
+private fun poetsContent(
     poets: List<FollowedPoet>,
     onOpenPoet: (String) -> Unit,
     onOpenPoets: () -> Unit,
@@ -193,43 +225,41 @@ private fun LazyListScope.poetsContent(
     onUnfollow: (String) -> Unit,
 ) {
     if (poets.isEmpty()) {
-        item {
-            MessageBox(
-                Icons.Filled.Groups,
-                "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
-                Modifier.height(320.dp),
-                body = "در فهرست شاعران یا صفحهٔ هر شاعر «علاقه‌مندم» را بزنید.",
-                action = {
-                    Button(onClick = onOpenPoets) {
-                        Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("دیدن شاعران")
-                    }
-                },
-            )
-        }
+        MessageBox(
+            Icons.Filled.Groups,
+            "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
+            Modifier.height(320.dp),
+            body = "در فهرست شاعران یا صفحهٔ هر شاعر «علاقه‌مندم» را بزنید.",
+            action = {
+                Button(onClick = onOpenPoets) {
+                    Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("دیدن شاعران")
+                }
+            },
+        )
         return
     }
-    item { SectionLabel("شاعران") }
-    items(poets, key = { it.key }) { poet ->
-        val source = PoetKey.parse(poet.key)?.source
-        AppRow(
-            title = poet.name,
-            meta = when (source) {
-                PoetSource.Echolalia -> "اکولالیا"
-                PoetSource.Local -> "گنجورک"
-                else -> "گنجور"
-            },
-            leading = { PoetAvatar(poet.name, null, 40.dp) },
-            trailing = {
-                OutlinedButton(onClick = { onUnfollow(poet.key) }) { Text("حذف") }
-            },
-            onClick = { onOpenPoet(poet.key) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-    item { SectionLabel("بیشتر") }
-    item {
+    Column(Modifier.fillMaxWidth()) {
+        SectionLabel("شاعران")
+        poets.forEach { poet ->
+            val source = PoetKey.parse(poet.key)?.source
+            AppRow(
+                title = poet.name,
+                meta = when (source) {
+                    PoetSource.Echolalia -> "اکولالیا"
+                    PoetSource.Local -> "گنجورک"
+                    else -> "گنجور"
+                },
+                leading = { PoetAvatar(poet.name, null, 40.dp) },
+                trailing = {
+                    OutlinedButton(onClick = { onUnfollow(poet.key) }) { Text("حذف") }
+                },
+                onClick = { onOpenPoet(poet.key) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        SectionLabel("بیشتر")
         AppRow(
             title = "پیدا کردن شاعر تازه",
             meta = "فهرست همهٔ شاعران با جست‌وجو",
@@ -238,8 +268,6 @@ private fun LazyListScope.poetsContent(
             onClick = onOpenPoets,
             modifier = Modifier.fillMaxWidth(),
         )
-    }
-    item {
         AppRow(
             title = "ویرایش گروهی",
             meta = "انتخاب چند شاعر یکجا",

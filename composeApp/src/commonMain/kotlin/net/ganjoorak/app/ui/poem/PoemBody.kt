@@ -17,7 +17,18 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +45,7 @@ import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemBlock
 import net.ganjoorak.app.data.Verse
 import net.ganjoorak.app.data.local.CoupletLayout
+import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.ui.theme.PoemStyle
@@ -105,6 +117,73 @@ fun PoemHeader(
                         .then(if (onCategoryClick != null && crumb.id > 0) Modifier.clickable { onCategoryClick(crumb) } else Modifier)
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                 )
+            }
+        }
+        if (usesSideNavigation) {
+            val chrome = LocalPoemChromeHost.current.current
+            if (chrome != null && chrome.poem.ref == poem.ref) {
+                Spacer(Modifier.height(6.dp))
+                DesktopPoemActionRow(chrome)
+            }
+        }
+    }
+}
+
+/**
+ * Desktop-only, in-flow under the title: a low-emphasis M3E-style horizontal
+ * toolbar (1.9.0 only: [Surface], [IconButton], [FilledIconButton]). Poet, like
+ * and share always; play is featured and only shown when the poem has audio.
+ */
+@Composable
+private fun DesktopPoemActionRow(chrome: PoemChrome, modifier: Modifier = Modifier) {
+    val poem = chrome.poem
+    val colors = MaterialTheme.colorScheme
+    val poetKey = poem.poetKey
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = colors.surfaceContainer,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (poetKey != null && chrome.onOpenPoet != null) {
+                IconButton(onClick = { chrome.onOpenPoet.invoke(poetKey) }) {
+                    PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
+                }
+            }
+            IconButton(onClick = chrome.onToggleSave) {
+                Icon(
+                    if (chrome.isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = if (chrome.isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
+                    tint = if (chrome.isSaved) colors.error else colors.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = chrome.onShare) {
+                Icon(
+                    Icons.Filled.Share,
+                    contentDescription = "هم‌رسانی",
+                    tint = colors.onSurfaceVariant,
+                )
+            }
+            if (poem.recitations.isNotEmpty()) {
+                FilledIconButton(
+                    onClick = chrome.onPlay,
+                    colors = if (chrome.isPlaying) {
+                        IconButtonDefaults.filledIconButtonColors()
+                    } else {
+                        IconButtonDefaults.filledTonalIconButtonColors()
+                    },
+                ) {
+                    Icon(
+                        if (chrome.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = if (chrome.isPlaying) "توقف خوانش" else "پخش خوانش",
+                    )
+                }
             }
         }
     }

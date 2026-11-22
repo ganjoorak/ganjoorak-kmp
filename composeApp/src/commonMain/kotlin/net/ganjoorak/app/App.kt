@@ -197,7 +197,21 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
             rememberViewModelStoreNavEntryDecorator(),
             remember { PredictiveBackTransitions.entryDecorator<NavKey>() },
         ),
-        transitionSpec = { PredictiveBackTransitions.push() },
+        // The spec's initial/target are Scenes; Scene.key is the NavKey, so sibling tab
+        // changes between two primary destinations (switchTo replaces the top route)
+        // can take the softer shared-axis instead of the hierarchical push. Real pops
+        // never reach this lambda; they use the specs below, which stay untouched.
+        transitionSpec = {
+            val from = initialState.key
+            val to = targetState.key
+            if (from is AppRoute && to is AppRoute && from.isPrimaryDestination() && to.isPrimaryDestination()) {
+                val fromIndex = from.menuTarget()?.ordinal ?: 0
+                val toIndex = to.menuTarget()?.ordinal ?: 0
+                PredictiveBackTransitions.sibling(forward = toIndex >= fromIndex)
+            } else {
+                PredictiveBackTransitions.push()
+            }
+        },
         popTransitionSpec = { PredictiveBackTransitions.pop() },
         predictivePopTransitionSpec = { swipeEdge -> PredictiveBackTransitions.predictivePop(swipeEdge) },
         entryProvider = entryProvider {

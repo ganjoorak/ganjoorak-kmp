@@ -50,15 +50,6 @@ import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.util.toPersianDigits
 
-/**
- * Collapsed width of the M3E wide navigation rail (matches the 1.9.0 collapsed token).
- * Used to place the poem-action toolbar to the left of the rail without a reserved gutter.
- */
-val DesktopCollapsedRailWidth = 96.dp
-
-/** Gap between the poem-action toolbar and the destination rail. */
-val PoemToolbarToRailGap = 24.dp
-
 private data class NavDestination(
     val target: MenuTarget?,
     val icon: ImageVector,
