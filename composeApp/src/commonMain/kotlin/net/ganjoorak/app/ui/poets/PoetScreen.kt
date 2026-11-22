@@ -89,10 +89,10 @@ fun PoetScreen(
         onBack = onBack,
         actions = {
             if (detail != null) {
-                OfflineDownloadAction(
+                OfflineUnitButton(
                     itemId = "poet:${detail.poet.key}",
-                    description = "بارگیری آثار برای خواندن آفلاین",
                     start = { graph.downloads.downloadPoet(detail) },
+                    compact = true,
                 )
                 IconButton(onClick = { shareText("${detail.poet.name}\n${poetUrl(detail)}", detail.poet.name) }) {
                     Icon(Icons.Filled.Share, contentDescription = "اشتراک‌گذاری")
@@ -128,7 +128,14 @@ fun PoetScreen(
             is Loadable.Loading -> item { LoadingBox(Modifier.height(240.dp)) }
             is Loadable.Error -> item { ErrorBox(s.message, onRetry = loader::reload, modifier = Modifier.height(320.dp)) }
             is Loadable.Ready -> {
-                categoryItems(s.value.root.children, onOpenCategory)
+                categoryItems(
+                    s.value.root.children,
+                    onOpenCategory,
+                    coveringPoetId = "poet:${s.value.poet.key}",
+                    onDownloadBook = { category ->
+                        graph.downloads.downloadBook(category.id, category.title, s.value.poet.name)
+                    },
+                )
                 poemItems(s.value.root.poems, onOpenPoem)
             }
         }
@@ -139,31 +146,6 @@ private fun poetUrl(detail: PoetDetail): String = when (detail.poet.source) {
     PoetSource.Ganjoor -> "https://ganjoorak.ir/${detail.poet.slug}"
     PoetSource.Echolalia -> "https://ganjoorak.ir/echolalia/${detail.poet.slug}"
     PoetSource.Local -> "https://ganjoorak.ir/${detail.poet.slug}"
-}
-
-/**
- * Downloads one offline item (a poet's works or a book) for offline reading.
- * A completed item switches to a check state and is removed on the next tap;
- * while its job runs, taps are ignored.
- */
-@Composable
-fun OfflineDownloadAction(itemId: String, description: String, start: () -> Unit) {
-    val downloads = AppGraph.instance.downloads
-    val items by downloads.items.collectAsState()
-    val active by downloads.active.collectAsState()
-    val complete = items.any { it.id == itemId && it.complete }
-    if (active.any { it.itemId == itemId }) {
-        IconButton(onClick = {}) {
-            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-        }
-    } else {
-        IconButton(onClick = { if (complete) downloads.remove(itemId) else start() }) {
-            Icon(
-                if (complete) Icons.Filled.Check else Icons.Filled.Download,
-                contentDescription = description,
-            )
-        }
-    }
 }
 
 /** The site's poet card: identity, a row of stats, follow and random poem, then the bio. */
@@ -265,14 +247,31 @@ private fun Bio(text: String) {
     }
 }
 
-fun LazyListScope.categoryItems(categories: List<CategoryRef>, onOpenCategory: (Int) -> Unit) {
+fun LazyListScope.categoryItems(
+    categories: List<CategoryRef>,
+    onOpenCategory: (Int) -> Unit,
+    coveringPoetId: String? = null,
+    onDownloadBook: ((CategoryRef) -> Unit)? = null,
+) {
     if (categories.isEmpty()) return
     item(key = "cats-title") { SectionLabel("مجموعه‌ها") }
     items(categories, key = { "c${it.id}" }) { category ->
         AppRow(
             title = category.title,
             leading = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            trailing = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null) },
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onDownloadBook != null) {
+                        OfflineUnitButton(
+                            itemId = "book:${category.id}",
+                            coveringPoetId = coveringPoetId,
+                            start = { onDownloadBook(category) },
+                            compact = true,
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null)
+                }
+            },
             onClick = { onOpenCategory(category.id) },
             modifier = Modifier.fillMaxWidth(),
         )

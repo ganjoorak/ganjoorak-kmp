@@ -75,7 +75,7 @@ private class PoetEntry(val poet: Poet, val group: String)
  * group chips for the classic and modern tabs, and a grid or list where every poet can be followed.
  */
 @Composable
-fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit) {
+fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit, onOpenDownloads: (() -> Unit)? = null) {
     val repository = AppGraph.instance.repository
     val settings by AppGraph.instance.settings.settings.collectAsState()
     val classicLoader = rememberLoader("poet-groups") { repository.poetGroups() }
@@ -133,6 +133,9 @@ fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit) {
         },
         headerExtra = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (onOpenDownloads != null) {
+                    OfflineLibraryEntry(onOpen = onOpenDownloads)
+                }
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },

@@ -9,13 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -40,8 +38,6 @@ import net.ganjoorak.app.data.VersePosition
 import net.ganjoorak.app.data.local.CoupletLayout
 import net.ganjoorak.app.data.local.PoemFont
 import net.ganjoorak.app.data.local.ThemeMode
-import net.ganjoorak.app.data.offline.OfflineItem
-import net.ganjoorak.app.data.offline.OfflineItemKind
 import net.ganjoorak.app.ui.components.SectionTitle
 import net.ganjoorak.app.ui.poem.PoemBlockView
 import net.ganjoorak.app.ui.theme.fontFamilyFor
@@ -125,20 +121,6 @@ fun SettingsContent() {
             store.update { it.copy(autoScrollWithAudio = on) }
         }
 
-        val offlineItems by AppGraph.instance.downloads.items.collectAsState()
-        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        SectionTitle("بارگیری‌های آفلاین")
-        if (offlineItems.isEmpty()) {
-            Text(
-                "هنوز چیزی برای خواندن آفلاین ذخیره نشده است.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-        } else {
-            offlineItems.forEach { item -> OfflineItemRow(item) }
-        }
-
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         SectionTitle("درباره")
         Text(
@@ -181,59 +163,4 @@ private fun LinkRow(title: String, subtitle: String, onClick: () -> Unit) {
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick),
     )
-}
-
-/** One saved offline item: what it is, how big it is, and how to drop it. */
-@Composable
-private fun OfflineItemRow(item: OfflineItem) {
-    val downloads = AppGraph.instance.downloads
-    ListItem(
-        headlineContent = { Text(item.title) },
-        supportingContent = {
-            Column {
-                Text(
-                    listOfNotNull(item.subtitle, offlineKindLabel(item.kind), persianByteSize(item.bytes))
-                        .joinToString(" · "),
-                )
-                if (!item.complete) {
-                    Text(
-                        "در حال بارگیری ${item.completedRefs.size.toPersianDigits()} از ${item.totalRefs.size.toPersianDigits()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        },
-        trailingContent = {
-            IconButton(onClick = { downloads.remove(item.id) }) {
-                Icon(Icons.Filled.Delete, contentDescription = "حذف از دستگاه")
-            }
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    )
-}
-
-/** The offline kind labels, the way the site words its sections. */
-private fun offlineKindLabel(kind: OfflineItemKind): String = when (kind) {
-    OfflineItemKind.Poem -> "شعر"
-    OfflineItemKind.Book -> "دفتر"
-    OfflineItemKind.Poet -> "شاعر"
-}
-
-/** A short Persian byte size, like «۱۲ کیلوبایت» or «۳٫۴ مگابایت». */
-private fun persianByteSize(bytes: Long): String {
-    val kb = bytes / 1024.0
-    val (number, unit) = when {
-        kb >= 1024 -> oneDecimal(kb / 1024) to "مگابایت"
-        kb >= 10 -> kb.roundToInt().toString() to "کیلوبایت"
-        kb >= 1 -> oneDecimal(kb) to "کیلوبایت"
-        else -> bytes.toString() to "بایت"
-    }
-    return "$number $unit".toPersianDigits().replace('.', '٫')
-}
-
-/** One decimal place, with a plain dot that [persianByteSize] turns into «٫». */
-private fun oneDecimal(value: Double): String {
-    val tenths = (value * 10).roundToInt()
-    return "${tenths / 10}.${tenths % 10}"
 }

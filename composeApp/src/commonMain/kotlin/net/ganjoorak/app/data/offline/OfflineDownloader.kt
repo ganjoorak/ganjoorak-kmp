@@ -14,6 +14,7 @@ import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoemRepository
 import net.ganjoorak.app.data.PoetDetail
+import net.ganjoorak.app.util.toPersianDigits
 
 /** Snapshot of one running download job, for progress UI later. */
 data class OfflineJob(val itemId: String, val completed: Int, val total: Int)
@@ -50,14 +51,24 @@ class OfflineDownloader(
 
     /** Downloads [category], all of its poems and every descendant category's poems. */
     fun downloadBook(category: Category) {
-        launch("book:${category.id}") {
+        startBook(category.id, category.title, category.poet?.name) { category }
+    }
+
+    /** Fetches the category, then downloads it and every descendant's poems. */
+    fun downloadBook(categoryId: Int, title: String, subtitle: String?) {
+        startBook(categoryId, title, subtitle) { repository.category(categoryId) }
+    }
+
+    private fun startBook(categoryId: Int, title: String, subtitle: String?, resolve: suspend () -> Category?) {
+        launch("book:$categoryId") {
+            val category = resolve() ?: return@launch
             val refs = collectRefs(category)
             runItem(
                 OfflineItem(
                     id = "book:${category.id}",
                     kind = OfflineItemKind.Book,
-                    title = category.title,
-                    subtitle = category.poet?.name,
+                    title = category.title.ifBlank { title },
+                    subtitle = category.poet?.name ?: subtitle,
                     totalRefs = refs,
                     pendingRefs = refs,
                 )
@@ -70,12 +81,13 @@ class OfflineDownloader(
         val poet = detail.poet
         launch("poet:${poet.key}") {
             val refs = collectRefs(detail.root)
+            val books = detail.root.children.size
             runItem(
                 OfflineItem(
                     id = "poet:${poet.key}",
                     kind = OfflineItemKind.Poet,
-                    title = poet.name,
-                    subtitle = poet.nickname,
+                    title = "همهٔ آثار ${poet.name}",
+                    subtitle = if (books > 0) "${books.toPersianDigits()} کتاب" else poet.nickname,
                     totalRefs = refs,
                     pendingRefs = refs,
                 )
@@ -91,6 +103,19 @@ class OfflineDownloader(
             refreshItems()
             activeFlow.value = activeFlow.value.filterNot { it.itemId == itemId }
         }
+    }
+
+    /** Continues a single incomplete item (the oryaan «تکمیل» action). */
+    fun resume(itemId: String) {
+        scope.launch {
+            val item = library.items().firstOrNull { it.id == itemId && !it.complete } ?: return@launch
+            launch(item.id) { runItem(item) }
+        }
+    }
+
+    /** Cancels every job and deletes every offline item on this device. */
+    fun removeAll() {
+        itemsFlow.value.map { it.id }.forEach { remove(it) }
     }
 
     /** Continues every incomplete item; called once on creation so restarts resume. */
