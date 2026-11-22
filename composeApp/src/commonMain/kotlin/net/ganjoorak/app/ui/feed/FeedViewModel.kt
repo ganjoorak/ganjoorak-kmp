@@ -73,13 +73,15 @@ class FeedViewModel(
     fun refresh() = restart(_state.value.source, keepVisible = false)
 
     /**
-     * Drops the queued poems of the old source. The poem on screen stays (as on the site), so the
-     * next swipe already lands on a poem from the new source.
+     * Drops the queued poems of the old source. The poem on screen stays (as on the site) only when
+     * the mode is unchanged (e.g. preferred-poet list updates); a new tab starts from that tab's
+     * own content.
      */
     private fun restart(source: FeedSource, keepVisible: Boolean = true) {
         job?.cancel()
         val current = _state.value
-        val visible = current.poems.getOrNull(visibleIndex).takeIf { keepVisible }
+        val visible = current.poems.getOrNull(visibleIndex)
+            .takeIf { keepVisible && current.source.mode == source.mode }
         visibleIndex = 0
         _state.value = FeedState(poems = listOfNotNull(visible), source = source, generation = current.generation + 1)
         ensureLoaded()

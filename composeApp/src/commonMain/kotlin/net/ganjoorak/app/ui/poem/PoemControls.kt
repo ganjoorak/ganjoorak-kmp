@@ -74,11 +74,15 @@ class PoemChromeHost {
 
 val LocalPoemChromeHost = staticCompositionLocalOf { PoemChromeHost() }
 
-/** Space reserved under a poem so verses are not hidden by the floating chip or pill. */
+/**
+ * Space reserved under a poem so verses are not hidden by the floating chip.
+ * Desktop has no bottom chrome (actions sit in the header), so it only needs
+ * the persistent nav padding.
+ */
 @Composable
 fun poemChromeBottomSpace(): Dp {
     val persistent = LocalPersistentNavPadding.current.calculateBottomPadding()
-    return PoemControlsHeight + persistent
+    return if (usesSideNavigation) persistent else PoemControlsHeight + persistent
 }
 
 /**
@@ -157,9 +161,9 @@ private fun BoxScope.PhonePoemFloatingControls(
 }
 
 /**
- * Desktop: publish the current poem's actions for [net.ganjoorak.app.ui.menu.DesktopPoemActionGroup]
- * to draw as a vertical floating group next to the rail. No bottom pill and no
- * header chrome — those belong only to the phone chip bar.
+ * Desktop: publish the current poem's actions so [PoemHeader] can draw them as a
+ * compact horizontal row under the title. No bottom pill here; that belongs only
+ * to the phone chip bar.
  */
 @Composable
 private fun BoxScope.DesktopPoemFloatingControls(

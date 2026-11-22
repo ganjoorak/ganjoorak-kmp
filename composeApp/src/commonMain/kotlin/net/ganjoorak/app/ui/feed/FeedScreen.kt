@@ -1,5 +1,13 @@
 package net.ganjoorak.app.ui.feed
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -109,11 +117,8 @@ fun FeedScreen(
         }
     }
 
-    val pager = rememberPagerState(pageCount = { state.poems.size + 1 })
-    LaunchedEffect(state.generation) { pager.scrollToPage(0) }
-    LaunchedEffect(pager) { snapshotFlow { pager.currentPage }.collect { vm.onPageVisible(it) } }
-    val current = state.poems.getOrNull(pager.currentPage)
-    LaunchedEffect(current?.ref) { current?.let(graph.library::recordRead) }
+    var visiblePage by remember { mutableStateOf(0) }
+    LaunchedEffect(state.source.mode) { visiblePage = 0 }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.statusBars)) {
         Column(Modifier.fillMaxSize()) {
@@ -121,48 +126,84 @@ fun FeedScreen(
             eyebrow()
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            when {
-                state.isFollowedMode -> FollowedFeed(
-                    onOpenLogin = onOpenLogin,
-                    onOpenPoem = onOpenPoem,
-                )
-                state.isFollowingEmpty -> FeedEmpty(
-                    title = "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
-                    body = "شاعران را به علاقه‌مندی‌ها اضافه کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
-                    primary = "دیدن شاعران" to onOpenPoets,
-                    secondary = "بازگشت به همه" to { graph.settings.setFeedMode(FeedMode.All) },
-                )
-                state.poems.isEmpty() && state.error != null -> ErrorBox(state.error!!, onRetry = vm::retry)
-                else -> VerticalPager(
-                    state = pager,
-                    modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 1,
-                    // The loader's key must change with its position: with a fixed key the pager keeps the
-                    // loader in view as poems are inserted before it, so the first poem never shows.
-                    key = { index -> state.poems.getOrNull(index)?.ref?.key ?: "loader-$index" },
-                ) { index ->
-                    val poem = state.poems.getOrNull(index)
-                    when {
-                        poem != null -> FeedPage(
-                            poem = poem,
-                            activeVerse = player.activeVerseOrder.takeIf { player.poemRef == poem.ref },
-                            onOpenPoet = onOpenPoet,
-                            onOpenCategory = { crumb: CategoryRef -> onOpenCategory(crumb.id) }.takeIf { poem.source == PoetSource.Ganjoor },
-                            onOpen = { onOpenPoem(poem.ref) },
-                        )
-                        state.error != null -> ErrorBox(state.error!!, onRetry = vm::retry)
-                        else -> LoadingBox()
+            AnimatedContent(
+                targetState = state,
+                contentKey = { it.source.mode },
+                modifier = Modifier.fillMaxSize(),
+                label = "feedMode",
+                transitionSpec = {
+                    // RTL: a higher tab index sits further left, so going to a higher tab
+                    // brings the new pane in from the left and pushes the old one out right.
+                    val from = initialState.source.mode.ordinal
+                    val to = targetState.source.mode.ordinal
+                    if (to > from) {
+                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
+                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it }) togetherWith
+                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
+                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it })
+                    } else {
+                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
+                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it }) togetherWith
+                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
+                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it })
+                    }
+                },
+            ) { pane ->
+                when {
+                    pane.isFollowedMode -> FollowedFeed(
+                        onOpenLogin = onOpenLogin,
+                        onOpenPoem = onOpenPoem,
+                    )
+                    pane.isFollowingEmpty -> FeedEmpty(
+                        title = "هنوز شاعری به علاقه‌مندی‌ها اضافه نکرده‌اید",
+                        body = "شاعران را به علاقه‌مندی‌ها اضافه کنید تا این فید فقط از شعرهای آن‌ها پر شود. فید «همه» همچنان از همهٔ شاعران است.",
+                        primary = "دیدن شاعران" to onOpenPoets,
+                        secondary = "بازگشت به همه" to { graph.settings.setFeedMode(FeedMode.All) },
+                    )
+                    pane.poems.isEmpty() && pane.error != null -> ErrorBox(pane.error!!, onRetry = vm::retry)
+                    else -> {
+                        val pager = rememberPagerState(pageCount = { pane.poems.size + 1 })
+                        LaunchedEffect(pane.generation) { pager.scrollToPage(0) }
+                        val current = pane.poems.getOrNull(pager.currentPage)
+                        LaunchedEffect(current?.ref) { current?.let(graph.library::recordRead) }
+                        LaunchedEffect(pager) {
+                            snapshotFlow { pager.currentPage }.collect {
+                                vm.onPageVisible(it)
+                                if (pane.source.mode == state.source.mode) visiblePage = it
+                            }
+                        }
+                        VerticalPager(
+                            state = pager,
+                            modifier = Modifier.fillMaxSize(),
+                            beyondViewportPageCount = 1,
+                            // The loader's key must change with its position: with a fixed key the pager keeps the
+                            // loader in view as poems are inserted before it, so the first poem never shows.
+                            key = { index -> pane.poems.getOrNull(index)?.ref?.key ?: "loader-$index" },
+                        ) { index ->
+                            val poem = pane.poems.getOrNull(index)
+                            when {
+                                poem != null -> FeedPage(
+                                    poem = poem,
+                                    activeVerse = player.activeVerseOrder.takeIf { player.poemRef == poem.ref },
+                                    onOpenPoet = onOpenPoet,
+                                    onOpenCategory = { crumb: CategoryRef -> onOpenCategory(crumb.id) }.takeIf { poem.source == PoetSource.Ganjoor },
+                                    onOpen = { onOpenPoem(poem.ref) },
+                                )
+                                pane.error != null -> ErrorBox(pane.error!!, onRetry = vm::retry)
+                                else -> LoadingBox()
+                            }
+                        }
                     }
                 }
             }
         }
         }
 
-        // Desktop hides the poem pill on followed/empty feeds (the rail remains).
-        // Phone always shows the v0.1.2 menu chip; the previous poem's actions
-        // are omitted so they cannot sit on top of those feeds.
+        // The controls follow the incoming tab's state; the exiting tab owns its pager
+        // inside AnimatedContent and never feeds the actions shown here.
         val hidePoemActions = state.isFollowedMode || state.isFollowingEmpty
         val showPoemChrome = !usesSideNavigation || !hidePoemActions
+        val current = state.poems.getOrNull(visiblePage)
         if (showPoemChrome) PoemFloatingControls(
             poem = current.takeUnless { hidePoemActions },
             isSaved = current != null && saved.any { it.ref == current.ref },

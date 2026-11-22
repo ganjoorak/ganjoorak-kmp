@@ -3,19 +3,18 @@ package net.ganjoorak.app.ui.menu
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
 /**
  * Desktop window chrome: full-width RTL content, with a wide navigation rail
- * flush to the physical right (RTL leading) edge, expanding over the content and a separate poem-action toolbar
- * just to its left. There is no reserved gutter, no bottom poem pill, and no poem
- * chrome in the header.
+ * flush to the physical right (RTL leading) edge, expanding over the content.
+ * There is no reserved gutter, no bottom poem pill, and no floating poem-action
+ * group beside the rail; poem actions live in the header instead (see
+ * [net.ganjoorak.app.ui.poem.PoemHeader]).
  */
 @Composable
 fun DesktopAppChrome(
@@ -35,11 +34,6 @@ fun DesktopAppChrome(
                     miniPlayer()
                 }
             }
-            DesktopPoemActionGroup(
-                Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = DesktopCollapsedRailWidth + PoemToolbarToRailGap),
-            )
             // RTL so the rail's leading edge and the expanded modal sit on the right.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 AppFloatingSideNav(

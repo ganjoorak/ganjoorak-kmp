@@ -80,6 +80,25 @@ object PredictiveBackTransitions {
         )
     }
 
+    /**
+     * A sibling tab change between two primary destinations: a short shared-axis slide
+     * (an eighth of the width) instead of the full hierarchical [push]. Pixel space, so
+     * the caller decides the direction the same way the feed does.
+     */
+    fun sibling(forward: Boolean): ContentTransform {
+        underlay = Underlay.None
+        verticalPull = 0f
+        val enter = if (forward) -1 else 1
+        val exit = if (forward) 1 else -1
+        return (
+            fadeIn(tween(POP_MS, easing = FastOutSlowInEasing)) +
+                slideInHorizontally(tween(POP_MS, easing = FastOutSlowInEasing)) { enter * it / 8 }
+        ) togetherWith (
+            fadeOut(tween(POP_MS, easing = FastOutSlowInEasing)) +
+                slideOutHorizontally(tween(POP_MS, easing = FastOutSlowInEasing)) { exit * it / 8 }
+        )
+    }
+
     fun pop(): ContentTransform {
         underlay = Underlay.Pop
         return ContentTransform(
