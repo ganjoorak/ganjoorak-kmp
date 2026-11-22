@@ -7,14 +7,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -199,7 +196,7 @@ private fun PlayerBar(
                 modifier = Modifier.size(iconSize),
             ) { eye() }
         }
-        ThinSeekTrack(
+        SeekSlider(
             positionMs = state.positionMs,
             durationMs = state.durationMs,
             onSeek = player::seekTo,
@@ -226,53 +223,28 @@ private fun PlayerBar(
     }
 }
 
+/** Native Material 3 Slider. Lives in the LTR media-controls row, so it stays LTR in RTL chrome. */
 @Composable
-private fun ThinSeekTrack(
+private fun SeekSlider(
     positionMs: Long,
     durationMs: Long,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = MaterialTheme.colorScheme
-    val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
-    Box(
-        modifier
-            .height(16.dp)
-            .pointerInput(durationMs) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    fun seekAt(x: Float) {
-                        if (durationMs <= 0) return
-                        val fraction = (x / size.width).coerceIn(0f, 1f)
-                        onSeek((fraction * durationMs).toLong())
-                    }
-                    seekAt(down.position.x)
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull() ?: break
-                        if (!change.pressed) break
-                        seekAt(change.position.x)
-                        change.consume()
-                    }
-                }
-            },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(RoundedCornerShape(50))
-                .background(colors.onSurface.copy(alpha = 0.13f)),
-        )
-        Box(
-            Modifier
-                .fillMaxWidth(progress)
-                .height(4.dp)
-                .clip(RoundedCornerShape(50))
-                .background(colors.onSurface.copy(alpha = 0.86f)),
-        )
-    }
+    var dragging by remember { mutableStateOf<Float?>(null) }
+    val fraction = dragging
+        ?: if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    Slider(
+        value = fraction,
+        onValueChange = { value ->
+            if (durationMs <= 0) return@Slider
+            dragging = value
+            onSeek((value * durationMs).toLong())
+        },
+        onValueChangeFinished = { dragging = null },
+        enabled = durationMs > 0,
+        modifier = modifier,
+    )
 }
 
 @Composable

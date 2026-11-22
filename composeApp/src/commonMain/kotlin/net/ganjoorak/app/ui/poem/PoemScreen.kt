@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
@@ -45,7 +44,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -348,21 +346,10 @@ private fun RecitationsCard(poem: Poem, state: PlayerState?, player: PlayerContr
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = {
-                when {
-                    current == null -> player.play(poem)
-                    else -> player.toggle()
-                }
-            }) {
-                Icon(
-                    if (state?.isPlaying == true) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (state?.isPlaying == true) "توقف" else "پخش",
-                )
-            }
-            Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, contentDescription = null)
-        }
-        if (state != null && state.durationMs > 0) {
-            SeekBar(state, player)
+            Icon(
+                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) "بستن فهرست خوانش‌ها" else "گشودن فهرست خوانش‌ها",
+            )
         }
         if (!player.isSupported) {
             Text(
@@ -407,31 +394,4 @@ private fun RecitationRow(recitation: Recitation, selected: Boolean, onClick: ()
             Text("همگام", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
     }
-}
-
-@Composable
-private fun SeekBar(state: PlayerState, player: PlayerController) {
-    var dragging by remember { mutableStateOf<Float?>(null) }
-    val fraction = dragging ?: (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f)
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Slider(
-            value = fraction,
-            onValueChange = { dragging = it },
-            onValueChangeFinished = {
-                dragging?.let { player.seekTo((it * state.durationMs).toLong()) }
-                dragging = null
-            },
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatTime((fraction * state.durationMs).toLong()), style = MaterialTheme.typography.labelSmall)
-            Text(formatTime(state.durationMs), style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
-
-fun formatTime(ms: Long): String {
-    val total = ms / 1000
-    val minutes = total / 60
-    val seconds = total % 60
-    return "$minutes:${seconds.toString().padStart(2, '0')}".toPersianDigits()
 }
