@@ -42,6 +42,15 @@ fun CategoryScreen(
         title = category?.title ?: "",
         subtitle = category?.poet?.name,
         onBack = onBack,
+        actions = {
+            if (category != null) {
+                OfflineDownloadAction(
+                    itemId = "book:${category.id}",
+                    description = "بارگیری این دفتر برای خواندن آفلاین",
+                    start = { graph.downloads.downloadBook(category) },
+                )
+            }
+        },
         headerExtra = category?.takeIf { it.ancestors.isNotEmpty() }?.let { c ->
             @Composable {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

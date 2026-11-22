@@ -76,7 +76,7 @@ val LocalPoemChromeHost = staticCompositionLocalOf { PoemChromeHost() }
 
 /**
  * Space reserved under a poem so verses are not hidden by the floating chip.
- * Desktop has no bottom chrome (actions sit in the header), so it only needs
+ * Desktop has no bottom chrome (actions sit in the rail column), so it only needs
  * the persistent nav padding.
  */
 @Composable
@@ -87,7 +87,8 @@ fun poemChromeBottomSpace(): Dp {
 
 /**
  * Dispatches to the phone chip bar (v0.1.2: menu / play / share-like-poet) or
- * the desktop poem pill (play / share-like-poet only; destinations stay in the rail).
+ * publishes the desktop poem actions for the side rail column (play /
+ * share-like-poet; destinations stay in the rail).
  */
 @Composable
 fun BoxScope.PoemFloatingControls(
@@ -161,9 +162,9 @@ private fun BoxScope.PhonePoemFloatingControls(
 }
 
 /**
- * Desktop: publish the current poem's actions so [PoemHeader] can draw them as a
- * compact horizontal row under the title. No bottom pill here; that belongs only
- * to the phone chip bar.
+ * Desktop: publish the current poem's actions so the floating side nav can draw
+ * them as a compact vertical group in the rail column. No bottom pill here; that
+ * belongs only to the phone chip bar.
  */
 @Composable
 private fun BoxScope.DesktopPoemFloatingControls(

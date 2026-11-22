@@ -20,6 +20,7 @@ class PoemRepository(
     private val api: GanjoorApi,
     private val echolalia: EcholaliaSource,
     private val local: LocalSource,
+    private val offline: net.ganjoorak.app.data.offline.OfflineLibrary? = null,
 ) {
     private val mutex = Mutex()
     private var poetGroups: List<PoetGroup>? = null
@@ -97,13 +98,30 @@ class PoemRepository(
         api.category(id).toCategory()
     }.also { categories[id] = it }
 
-    suspend fun poem(ref: PoemRef): Poem = poems[ref.key] ?: request("دریافت شعر ممکن نشد") {
-        when (ref.source) {
-            PoetSource.Ganjoor -> api.poem(ref.id).toPoem()
-            PoetSource.Echolalia -> echolalia.poem(ref.id)
-            PoetSource.Local -> local.poem(ref.poetSlug, ref.id)
+    /** Local-first: a saved poem is served from the offline library without touching the network. */
+    suspend fun poem(ref: PoemRef): Poem {
+        poems[ref.key]?.let { return it }
+        offline?.getPoem(ref)?.let { saved ->
+            poems[ref.key] = saved
+            return saved
         }
-    }.also { poems[ref.key] = it }
+        val fetched = try {
+            request("دریافت شعر ممکن نشد") {
+                when (ref.source) {
+                    PoetSource.Ganjoor -> api.poem(ref.id).toPoem()
+                    PoetSource.Echolalia -> echolalia.poem(ref.id)
+                    PoetSource.Local -> local.poem(ref.poetSlug, ref.id)
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            offline?.getPoem(ref)?.let { saved -> return saved }
+            throw e
+        }
+        poems[ref.key] = fetched
+        return fetched
+    }
 
     /** A random poem by the poet with [poetKey], or from all of Ganjoor when it's null. */
     suspend fun randomPoem(poetKey: String? = null): Poem {

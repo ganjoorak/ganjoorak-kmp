@@ -21,6 +21,7 @@ data class PlayerState(
     val poemTitle: String = "",
     val poetName: String = "",
     val recitation: Recitation? = null,
+    val recitations: List<Recitation> = emptyList(),
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
     val positionMs: Long = 0,
@@ -28,6 +29,9 @@ data class PlayerState(
     val activeVerseOrder: Int? = null,
 ) {
     val isActive: Boolean get() = recitation != null
+    val recitationIndex: Int get() = recitations.indexOfFirst { it.id == recitation?.id }
+    val hasPreviousRecitation: Boolean get() = recitationIndex > 0
+    val hasNextRecitation: Boolean get() = recitationIndex >= 0 && recitationIndex < recitations.lastIndex
 }
 
 /** Finds the verse being recited at [positionMs], given timings sorted by start. */
@@ -56,6 +60,7 @@ class PlayerController(
     private var timings: List<VerseTiming> = emptyList()
     private var ticker: Job? = null
     private var timingJob: Job? = null
+    private var currentPoem: Poem? = null
 
     fun play(poem: Poem, recitation: Recitation = poem.recitations.first()) {
         if (!player.isSupported) {
@@ -74,6 +79,7 @@ class PlayerController(
                 timings = runCatching { repository.timings(recitation.id) }.getOrDefault(emptyList())
             }
         }
+        currentPoem = poem
         player.load(recitation.mp3Url)
         player.play()
         _state.value = PlayerState(
@@ -81,6 +87,7 @@ class PlayerController(
             poemTitle = poem.title,
             poetName = poem.poetName,
             recitation = recitation,
+            recitations = poem.recitations,
             isPlaying = true,
             isBuffering = true,
         )
@@ -121,7 +128,27 @@ class PlayerController(
         timingJob?.cancel()
         player.stop()
         timings = emptyList()
+        currentPoem = null
         _state.value = PlayerState()
+    }
+
+    /** Plays the previous recitation of the current poem, if any. */
+    fun playPrevious() {
+        val poem = currentPoem ?: return
+        val index = _state.value.recitationIndex
+        if (index > 0) play(poem, poem.recitations[index - 1])
+    }
+
+    /** Plays the next recitation of the current poem, if any. */
+    fun playNext() {
+        val poem = currentPoem ?: return
+        val index = _state.value.recitationIndex
+        if (index >= 0 && index < poem.recitations.lastIndex) play(poem, poem.recitations[index + 1])
+    }
+
+    fun playRecitation(recitation: Recitation) {
+        val poem = currentPoem ?: return
+        play(poem, recitation)
     }
 
     private fun startTicker() {

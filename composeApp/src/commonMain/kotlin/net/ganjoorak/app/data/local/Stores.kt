@@ -19,7 +19,7 @@ import net.ganjoorak.app.data.account.MAX_HISTORY
 
 enum class ThemeMode { System, Light, Dark, Paper }
 
-enum class PoemFont { Vazirmatn, Samim, Tanha, Shabnam, Gandom, Parastoo, Sahel, Nahid }
+enum class PoemFont { Vazirmatn, Samim, Tanha, Shabnam, Gandom, Parastoo, Sahel, Nahid, IranNastaliq }
 
 enum class CoupletLayout { Auto, Stacked, SideBySide }
 

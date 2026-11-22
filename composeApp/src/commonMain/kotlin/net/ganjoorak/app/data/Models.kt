@@ -46,6 +46,7 @@ data class PoetKey(val source: PoetSource, val ref: String) {
 
 data class PoetGroup(val title: String, val poets: List<Poet>)
 
+@Serializable
 data class CategoryRef(val id: Int, val title: String)
 
 /** Identifies a poem across sources; [poetSlug] is needed for local poems, whose ids are per poet. */
@@ -69,6 +70,7 @@ data class Category(
 data class PoetDetail(val poet: Poet, val root: Category)
 
 /** Mirrors Ganjoor's `VersePosition` enum. */
+@Serializable
 enum class VersePosition {
     Right, Left, CenteredVerse1, CenteredVerse2, Single, Comment, Paragraph;
 
@@ -86,35 +88,50 @@ enum class VersePosition {
     }
 }
 
+@Serializable
 data class Verse(val order: Int, val position: VersePosition, val text: String)
 
 /** A visual unit of a poem: a couplet (beyt), a band line, a free-verse line, prose or a stanza break. */
+@Serializable
 sealed interface PoemBlock {
     val verses: List<Verse>
 
+    @Serializable
+    @kotlinx.serialization.SerialName("couplet")
     data class Couplet(val first: Verse, val second: Verse?) : PoemBlock {
         override val verses get() = listOfNotNull(first, second)
     }
 
+    @Serializable
+    @kotlinx.serialization.SerialName("centered")
     data class Centered(override val verses: List<Verse>) : PoemBlock
 
+    @Serializable
+    @kotlinx.serialization.SerialName("line")
     data class Line(val verse: Verse) : PoemBlock {
         override val verses get() = listOf(verse)
     }
 
+    @Serializable
+    @kotlinx.serialization.SerialName("prose")
     data class Prose(val verse: Verse) : PoemBlock {
         override val verses get() = listOf(verse)
     }
 
+    @Serializable
+    @kotlinx.serialization.SerialName("note")
     data class Note(val verse: Verse) : PoemBlock {
         override val verses get() = listOf(verse)
     }
 
+    @Serializable
+    @kotlinx.serialization.SerialName("break")
     data object Break : PoemBlock {
         override val verses get() = emptyList<Verse>()
     }
 }
 
+@Serializable
 data class Recitation(
     val id: Int,
     val title: String,
@@ -123,6 +140,7 @@ data class Recitation(
     val inSync: Boolean,
 )
 
+@Serializable
 data class Poem(
     val ref: PoemRef,
     val title: String,
@@ -182,6 +200,7 @@ data class SearchHit(
 
 data class SearchPage(val hits: List<SearchHit>, val page: Int, val hasNext: Boolean, val total: Int?)
 
+@Serializable
 data class VerseTiming(val verseOrder: Int, val startMs: Long)
 
 @Serializable

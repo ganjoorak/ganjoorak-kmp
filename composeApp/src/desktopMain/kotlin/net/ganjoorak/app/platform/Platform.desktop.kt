@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.okhttp.OkHttp
+import net.ganjoorak.app.data.offline.ByteStore
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 import java.awt.Desktop
@@ -64,3 +65,40 @@ actual fun currentTimeMillis(): Long = System.currentTimeMillis()
 
 actual val usesSideNavigation: Boolean
     get() = System.getProperty("ganjoorak.nav") != "bar" && System.getenv("GANJOORAK_NAV") != "bar"
+
+/** Durable user-data dir: %APPDATA%/ganjoorak/offline on Windows, ~/.local/share/ganjoorak/offline elsewhere. */
+actual fun offlineByteStore(): ByteStore {
+    val windows = System.getProperty("os.name")?.startsWith("Windows") == true
+    val dir = if (windows) {
+        File(System.getenv("APPDATA") ?: System.getProperty("user.home"), "ganjoorak/offline")
+    } else {
+        File(System.getProperty("user.home"), ".local/share/ganjoorak/offline")
+    }
+    return FileByteStore(dir)
+}
+
+/** Blocking file-backed [ByteStore]; offline content is small JSON files. */
+private class FileByteStore(private val root: File) : ByteStore {
+    init { root.mkdirs() }
+    private fun file(path: String) = File(root, path)
+
+    override suspend fun write(path: String, bytes: ByteArray) {
+        val f = file(path)
+        f.parentFile?.mkdirs()
+        f.writeBytes(bytes)
+    }
+
+    override suspend fun read(path: String): ByteArray? = file(path).takeIf { it.isFile }?.readBytes()
+
+    override suspend fun delete(path: String): Boolean = file(path).delete()
+
+    override suspend fun list(prefix: String): List<String> =
+        root.walkTopDown().filter { it.isFile }
+            .map { it.relativeTo(root).invariantSeparatorsPath }
+            .filter { it.startsWith(prefix) }
+            .toList()
+
+    override suspend fun exists(path: String): Boolean = file(path).isFile
+
+    override suspend fun length(path: String): Long? = file(path).takeIf { it.isFile }?.length()
+}

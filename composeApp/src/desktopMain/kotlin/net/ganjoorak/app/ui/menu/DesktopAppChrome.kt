@@ -12,9 +12,9 @@ import androidx.compose.ui.unit.LayoutDirection
 /**
  * Desktop window chrome: full-width RTL content, with a wide navigation rail
  * flush to the physical right (RTL leading) edge, expanding over the content.
- * There is no reserved gutter, no bottom poem pill, and no floating poem-action
- * group beside the rail; poem actions live in the header instead (see
- * [net.ganjoorak.app.ui.poem.PoemHeader]).
+ * There is no reserved gutter and no bottom poem pill; poem actions live in a
+ * small floating group at the bottom of the rail column (see
+ * [AppFloatingSideNav]).
  */
 @Composable
 fun DesktopAppChrome(
