@@ -7,34 +7,13 @@ import io.ktor.client.engine.okhttp.OkHttp
 import net.ganjoorak.app.data.offline.ByteStore
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
-import java.awt.Desktop
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
-import java.net.URI
 
-/** The JVM has no built-in MP3 decoder, so desktop hands recitations to the default browser. */
-private class BrowserAudioPlayer : AudioPlayer {
-    override val isSupported = false
-    override val isPlaying = false
-    override val isBuffering = false
-    override val isEnded = false
-    override val positionMs = 0L
-    override val durationMs = 0L
-
-    override fun load(url: String) {
-        runCatching { Desktop.getDesktop().browse(URI(url)) }
-    }
-
-    override fun play() = Unit
-    override fun pause() = Unit
-    override fun seekTo(positionMs: Long) = Unit
-    override fun stop() = Unit
-}
-
-actual fun createAudioPlayer(): AudioPlayer = BrowserAudioPlayer()
+actual fun createAudioPlayer(): AudioPlayer = Mp3AudioPlayer()
 
 actual fun httpEngine(): HttpClientEngineFactory<*> = OkHttp
 

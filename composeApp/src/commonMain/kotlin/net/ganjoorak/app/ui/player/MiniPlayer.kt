@@ -82,8 +82,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
             Modifier
                 .fillMaxWidth()
                 .padding(
-                    // In RTL desktop chrome, start is the physical right (the rail column).
-                    start = if (usesSideNavigation) 108.dp else 12.dp,
+                    start = 12.dp,
                     end = 12.dp,
                     top = 8.dp,
                     bottom = if (usesSideNavigation) 16.dp else 8.dp,

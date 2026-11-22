@@ -44,10 +44,11 @@ fun CategoryScreen(
         onBack = onBack,
         actions = {
             if (category != null) {
-                OfflineDownloadAction(
+                OfflineUnitButton(
                     itemId = "book:${category.id}",
-                    description = "بارگیری این دفتر برای خواندن آفلاین",
+                    coveringPoetId = category.poet?.key?.let { "poet:$it" },
                     start = { graph.downloads.downloadBook(category) },
+                    compact = true,
                 )
             }
         },
@@ -78,7 +79,14 @@ fun CategoryScreen(
                         )
                     }
                 }
-                categoryItems(s.value.children, onOpenCategory)
+                categoryItems(
+                    s.value.children,
+                    onOpenCategory,
+                    coveringPoetId = s.value.poet?.key?.let { "poet:$it" },
+                    onDownloadBook = { child ->
+                        graph.downloads.downloadBook(child.id, child.title, s.value.poet?.name)
+                    },
+                )
                 poemItems(s.value.poems, onOpenPoem)
             }
         }

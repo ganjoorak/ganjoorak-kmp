@@ -12,24 +12,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,14 +29,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
-import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.CategoryRef
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.data.PoemBlock
 import net.ganjoorak.app.data.Verse
 import net.ganjoorak.app.data.local.CoupletLayout
-import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.ui.theme.PoemStyle
 import net.ganjoorak.app.util.toPersianDigits
@@ -118,48 +105,6 @@ fun PoemHeader(
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                 )
             }
-        }
-        // Phones have no rail column for poem actions, so the header hosts the
-        // offline download for the shown poem.
-        if (!usesSideNavigation) {
-            PoemDownloadButton(poem)
-        }
-    }
-}
-
-/**
- * Phone-only download for a single poem, matching the desktop rail download:
- * a tap saves the poem as its own item, a second tap removes just that item,
- * and a poem saved only inside a book or poet item shows the saved state
- * without ever taking the parent apart.
- */
-@Composable
-private fun PoemDownloadButton(poem: Poem) {
-    val downloads = AppGraph.instance.downloads
-    val items by downloads.items.collectAsState()
-    val jobs by downloads.active.collectAsState()
-    val scope = rememberCoroutineScope()
-    val poemId = "poem:${poem.ref.key}"
-    val savedAlone = items.any { it.id == poemId }
-    val saved = savedAlone || items.any { poem.ref in it.completedRefs }
-    val working = jobs.any { job -> items.any { it.id == job.itemId && poem.ref in it.totalRefs } }
-    IconButton(
-        onClick = {
-            when {
-                working -> Unit
-                savedAlone -> downloads.remove(poemId)
-                else -> scope.launch { downloads.downloadPoem(poem) }
-            }
-        },
-    ) {
-        if (working) {
-            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-        } else {
-            Icon(
-                if (saved) Icons.Filled.Check else Icons.Filled.Download,
-                contentDescription = if (savedAlone) "حذف از دستگاه" else "بارگیری برای خواندن آفلاین",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

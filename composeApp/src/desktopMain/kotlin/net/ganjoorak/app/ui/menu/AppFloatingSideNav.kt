@@ -16,8 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -32,7 +30,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -221,11 +218,11 @@ fun AppFloatingSideNav(
 }
 
 /** The collapsed [WideNavigationRail] column width (ContainerWidth token: 96dp). */
-private val RailColumnWidth = 96.dp
+internal val DesktopRailColumnWidth = 96.dp
 
 /**
  * The current poem's actions as a small vertical group in the rail column, near
- * the bottom of the window: poet, like, share, download, and a featured play.
+ * the bottom of the window: poet, like, share, and a featured play.
  * Download starts a single-poem offline item; when one exists it is removed
  * instead, so a parent book or poet item is never taken apart from here.
  * [bottomPad] keeps the group above the mini player bar while it is visible.
@@ -233,21 +230,13 @@ private val RailColumnWidth = 96.dp
 @Composable
 private fun PoemRailActions(bottomPad: Dp, modifier: Modifier = Modifier) {
     val chrome = LocalPoemChromeHost.current.current ?: return
-    val downloads = AppGraph.instance.downloads
-    val items by downloads.items.collectAsState()
-    val jobs by downloads.active.collectAsState()
-    val scope = rememberCoroutineScope()
     val colors = MaterialTheme.colorScheme
     val poem = chrome.poem
-    val poemId = "poem:${poem.ref.key}"
-    val savedAlone = items.any { it.id == poemId }
-    val saved = savedAlone || items.any { poem.ref in it.completedRefs }
-    val working = jobs.any { job -> items.any { it.id == job.itemId && poem.ref in it.totalRefs } }
     val poetKey = poem.poetKey
 
     Box(
         modifier
-            .width(RailColumnWidth)
+            .width(DesktopRailColumnWidth)
             .padding(bottom = bottomPad),
         contentAlignment = Alignment.BottomCenter,
     ) {
@@ -276,29 +265,6 @@ private fun PoemRailActions(bottomPad: Dp, modifier: Modifier = Modifier) {
                 }
                 IconButton(onClick = chrome.onShare) {
                     Icon(Icons.Filled.Share, contentDescription = "هم‌رسانی", tint = colors.onSurfaceVariant)
-                }
-                IconButton(
-                    onClick = {
-                        when {
-                            working -> Unit
-                            savedAlone -> downloads.remove(poemId)
-                            else -> scope.launch { downloads.downloadPoem(poem) }
-                        }
-                    },
-                ) {
-                    if (working) {
-                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(
-                            if (saved) Icons.Filled.Check else Icons.Filled.Download,
-                            contentDescription = if (saved) {
-                                "این شعر برای خواندن آفلاین ذخیره است"
-                            } else {
-                                "بارگیری این شعر برای خواندن آفلاین"
-                            },
-                            tint = colors.onSurfaceVariant,
-                        )
-                    }
                 }
                 if (poem.recitations.isNotEmpty()) {
                     FilledIconButton(

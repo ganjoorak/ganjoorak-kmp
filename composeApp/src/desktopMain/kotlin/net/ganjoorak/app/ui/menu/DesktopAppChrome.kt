@@ -2,6 +2,7 @@ package net.ganjoorak.app.ui.menu
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -12,8 +13,9 @@ import androidx.compose.ui.unit.LayoutDirection
 /**
  * Desktop window chrome: full-width RTL content, with a wide navigation rail
  * flush to the physical right (RTL leading) edge, expanding over the content.
- * There is no reserved gutter and no bottom poem pill; poem actions live in a
- * small floating group at the bottom of the rail column (see
+ * Content (and the mini player) reserves the collapsed rail width on the
+ * physical right so lists are not clipped under the rail. Poem actions live in
+ * a small floating group at the bottom of the rail column (see
  * [AppFloatingSideNav]).
  */
 @Composable
@@ -28,7 +30,7 @@ fun DesktopAppChrome(
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().absolutePadding(right = DesktopRailColumnWidth)) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Box(Modifier.weight(1f)) { navContent() }
                     miniPlayer()

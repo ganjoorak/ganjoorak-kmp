@@ -20,6 +20,7 @@ import net.ganjoorak.app.ui.menu.MenuTarget
 @Serializable data object FollowingRoute : AppRoute
 @Serializable data object ProfileRoute : AppRoute
 @Serializable data object SettingsRoute : AppRoute
+@Serializable data object OfflineDownloadsRoute : AppRoute
 @Serializable data class LoginRoute(val signup: Boolean = false) : AppRoute
 @Serializable data class PoemRoute(
     val id: Int,
@@ -37,7 +38,7 @@ internal fun AppRoute.menuTarget(): MenuTarget? = when (this) {
     FeedRoute -> MenuTarget.Home
     SearchRoute -> MenuTarget.Search
     ExploreRoute -> MenuTarget.Explore
-    PoetsRoute -> MenuTarget.Poets
+    PoetsRoute, OfflineDownloadsRoute -> MenuTarget.Poets
     SavedRoute, FollowingRoute -> MenuTarget.Favorites
     ProfileRoute, is LoginRoute -> MenuTarget.Profile
     SettingsRoute -> MenuTarget.Settings
@@ -71,6 +72,7 @@ val appNavSerializersModule = SerializersModule {
         subclass(PoemRoute::class, PoemRoute.serializer())
         subclass(PoetRoute::class, PoetRoute.serializer())
         subclass(CategoryRoute::class, CategoryRoute.serializer())
+        subclass(OfflineDownloadsRoute::class, OfflineDownloadsRoute.serializer())
     }
 }
 

@@ -70,6 +70,8 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
+            // Pure-Java MP3 decode (JLayer + mp3spi) for in-app desktop playback; no VLC/JavaFX natives.
+            implementation(libs.mp3spi)
         }
     }
 }

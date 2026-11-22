@@ -49,6 +49,7 @@ import net.ganjoorak.app.ui.poem.PoemChromeHost
 import net.ganjoorak.app.ui.poem.PoemScreen
 import net.ganjoorak.app.ui.poets.CategoryScreen
 import net.ganjoorak.app.ui.poets.PoetScreen
+import net.ganjoorak.app.ui.poets.OfflineDownloadsScreen
 import net.ganjoorak.app.ui.poets.PoetsScreen
 import net.ganjoorak.app.ui.profile.ProfileScreen
 import net.ganjoorak.app.ui.saved.FavoritesScreen
@@ -225,7 +226,16 @@ private fun AppNavDisplay(backStack: MutableList<NavKey>, onEditFollowing: () ->
                 )
             }
             entry<ExploreRoute> { ExploreScreen(onBack = tabBack, onOpenPoem = openPoem, onOpenPoet = openPoet) }
-            entry<PoetsRoute> { PoetsScreen(onBack = tabBack, onOpenPoet = openPoet) }
+            entry<PoetsRoute> {
+                PoetsScreen(
+                    onBack = tabBack,
+                    onOpenPoet = openPoet,
+                    onOpenDownloads = { backStack.open(OfflineDownloadsRoute, singleTop = true) },
+                )
+            }
+            entry<OfflineDownloadsRoute> {
+                OfflineDownloadsScreen(onBack = back, onOpenPoet = openPoet, onOpenCategory = openCategory)
+            }
             entry<SearchRoute> { SearchScreen(onBack = back, onOpenPoem = openPoem, onOpenPoet = openPoet) }
             entry<SavedRoute> {
                 FavoritesScreen(
