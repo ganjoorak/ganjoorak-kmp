@@ -70,6 +70,7 @@ import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.LoadingBox
 import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.components.TopicChip
+import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.poem.PoemFloatingControls
 import net.ganjoorak.app.ui.poem.poemChromeBottomSpace
 import net.ganjoorak.app.ui.poem.PoemHeader
@@ -98,6 +99,7 @@ fun FeedScreen(
     val settings by graph.settings.settings.collectAsState()
     val saved by graph.library.savedPoems.collectAsState()
     val player by graph.player.state.collectAsState()
+    val recitationListHost = LocalRecitationListHost.current
     var sharing by remember { mutableStateOf<Poem?>(null) }
 
     val eyebrow: @Composable () -> Unit = {
@@ -212,6 +214,12 @@ fun FeedScreen(
             onShare = { sharing = current },
             onPlay = {
                 current?.let { poem -> if (player.poemRef == poem.ref) graph.player.toggle() else graph.player.play(poem) }
+            },
+            onPlayLongPress = {
+                current?.let { poem ->
+                    if (player.poemRef != poem.ref) graph.player.play(poem)
+                    recitationListHost.open = true
+                }
             },
             onOpenPoet = onOpenPoet,
         )

@@ -43,7 +43,9 @@ import net.ganjoorak.app.ui.menu.FeedPoetsSheet
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.menu.MenuTarget
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
+import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.player.MiniPlayer
+import net.ganjoorak.app.ui.player.RecitationListHost
 import net.ganjoorak.app.ui.poem.LocalPoemChromeHost
 import net.ganjoorak.app.ui.poem.PoemChromeHost
 import net.ganjoorak.app.ui.poem.PoemScreen
@@ -93,6 +95,7 @@ private fun AppShell() {
     val storyState by graph.stories.state.collectAsState()
     val settings by graph.settings.settings.collectAsState()
     val poemChromeHost = remember { PoemChromeHost() }
+    val recitationListHost = remember { RecitationListHost() }
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     val goTo: (AppRoute) -> Unit = { route -> backStack.switchTo(route) }
@@ -117,6 +120,7 @@ private fun AppShell() {
     CompositionLocalProvider(
         LocalAppActions provides actions,
         LocalPoemChromeHost provides poemChromeHost,
+        LocalRecitationListHost provides recitationListHost,
         LocalPersistentNavPadding provides PaddingValues(0.dp),
     ) {
         AppLayoutChrome(

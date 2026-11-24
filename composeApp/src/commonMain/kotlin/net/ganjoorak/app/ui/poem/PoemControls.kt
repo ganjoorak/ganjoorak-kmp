@@ -1,12 +1,8 @@
 package net.ganjoorak.app.ui.poem
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -31,7 +27,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -99,20 +94,22 @@ fun BoxScope.PoemFloatingControls(
     onShare: () -> Unit,
     onPlay: () -> Unit,
     onOpenPoet: ((String) -> Unit)?,
+    onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)? = null,
 ) {
     if (usesSideNavigation) {
-        DesktopPoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, extra)
+        DesktopPoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra)
     } else {
-        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, extra)
+        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra)
     }
 }
 
 /**
  * Phone controls, matching tag v0.1.2: a compact bar of three groups —
- * «menu», «play» (a capsule that spells out «در حال پخش» while playing) and
- * «share, like, poet», right to left. Search lives in the menu. The menu chip
- * stays visible even when there is no poem (empty or «دنبال‌شده‌ها» feed).
+ * «menu», «play» (a plain play/pause button; long-press opens the recitation
+ * list in the bottom player) and «share, like, poet», right to left. Search
+ * lives in the menu. The menu chip stays visible even when there is no poem
+ * (empty or «دنبال‌شده‌ها» feed).
  */
 @Composable
 private fun BoxScope.PhonePoemFloatingControls(
@@ -123,6 +120,7 @@ private fun BoxScope.PhonePoemFloatingControls(
     onShare: () -> Unit,
     onPlay: () -> Unit,
     onOpenPoet: ((String) -> Unit)?,
+    onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)?,
 ) {
     val app = LocalAppActions.current
@@ -139,7 +137,7 @@ private fun BoxScope.PhonePoemFloatingControls(
         Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
         if (poem != null) {
             if (poem.recitations.isNotEmpty()) {
-                Pill { PlayCapsule(isPlaying, onPlay) }
+                Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
             }
             Pill {
                 extra?.invoke(this)
@@ -175,9 +173,11 @@ private fun BoxScope.DesktopPoemFloatingControls(
     onShare: () -> Unit,
     onPlay: () -> Unit,
     onOpenPoet: ((String) -> Unit)?,
+    @Suppress("UNUSED_PARAMETER") onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)?,
 ) {
     // [extra] is phone-only (the v0.1.2 chip); desktop does not render it here.
+    // Long-press on play is phone-only too: the desktop rail has no recitation list.
     PublishPoemChrome(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet)
 }
 
@@ -213,35 +213,25 @@ fun BarIcon(icon: ImageVector, description: String, onClick: () -> Unit, tint: C
     }
 }
 
-/** Play/pause as the pill's highlighted capsule, the way the selected tab shows its label. */
+/** Play/pause as a plain icon button in the pill. Tap only plays/pauses; long-press opens the recitation list (see [onLongClick]). */
 @Composable
-private fun PlayCapsule(isPlaying: Boolean, onClick: () -> Unit) {
+private fun PlayCapsule(isPlaying: Boolean, onClick: () -> Unit, onLongClick: () -> Unit = {}) {
     val colors = MaterialTheme.colorScheme
     val container by animateColorAsState(if (isPlaying) colors.primary else colors.primaryContainer)
     val content by animateColorAsState(if (isPlaying) colors.onPrimary else colors.onPrimaryContainer)
-    Row(
+    Box(
         Modifier
-            .height(40.dp)
+            .size(40.dp)
             .clip(CircleShape)
             .background(container)
-            .selectable(selected = isPlaying, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick, role = Role.Button),
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
             contentDescription = if (isPlaying) "توقف خوانش" else "پخش خوانش",
             tint = content,
         )
-        AnimatedVisibility(visible = isPlaying, enter = fadeIn() + expandHorizontally(), exit = fadeOut() + shrinkHorizontally()) {
-            Text(
-                "در حال پخش",
-                color = content,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                modifier = Modifier.padding(start = 6.dp),
-            )
-        }
     }
 }
 

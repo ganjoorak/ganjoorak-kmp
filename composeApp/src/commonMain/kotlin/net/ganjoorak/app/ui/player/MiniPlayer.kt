@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,12 +63,19 @@ import net.ganjoorak.app.player.PlayerState
 import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.util.toPersianDigits
 
+/** Whether the mini-player's recitation list is open. Hoisted so the poem play button can open it on long-press. */
+class RecitationListHost {
+    var open by mutableStateOf(false)
+}
+
+val LocalRecitationListHost = staticCompositionLocalOf { RecitationListHost() }
+
 /** Compact now-playing pill, matching the website reading bar. Media controls stay LTR. */
 @Composable
 fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier: Modifier = Modifier) {
     val state by player.state.collectAsState()
-    var listOpen by remember { mutableStateOf(false) }
-    if (!state.isActive) listOpen = false
+    val listHost = LocalRecitationListHost.current
+    if (!state.isActive) listHost.open = false
 
     AnimatedVisibility(
         visible = state.isActive,
@@ -86,7 +94,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            val expanded = listOpen && state.recitations.isNotEmpty()
+            val expanded = listHost.open && state.recitations.isNotEmpty()
             Surface(
                 modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(),
                 shape = if (expanded) RoundedCornerShape(28.dp) else RoundedCornerShape(percent = 50),
@@ -102,7 +110,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
                             isPlaying = state.isPlaying,
                             onSelect = {
                                 player.playRecitation(it)
-                                listOpen = false
+                                listHost.open = false
                             },
                         )
                     }
@@ -110,8 +118,8 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
                         PlayerBar(
                             player = player,
                             state = state,
-                            listOpen = listOpen,
-                            onToggleList = { listOpen = !listOpen },
+                            listOpen = listHost.open,
+                            onToggleList = { listHost.open = !listHost.open },
                             onOpenPoem = onOpenPoem,
                         )
                     }
