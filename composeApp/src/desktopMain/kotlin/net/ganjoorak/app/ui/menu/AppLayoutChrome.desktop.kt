@@ -21,7 +21,6 @@ actual fun AppLayoutChrome(
             onSelect = onSelect,
             onOpenSearch = onOpenSearch,
             navContent = navContent,
-            miniPlayer = miniPlayer,
         )
     } else {
         PhoneAppChrome(navContent = navContent, miniPlayer = miniPlayer)

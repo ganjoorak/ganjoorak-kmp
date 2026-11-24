@@ -231,9 +231,9 @@ private fun PlayerBar(
     }
 }
 
-/** Native Material 3 Slider. Lives in the LTR media-controls row, so it stays LTR in RTL chrome. */
+/** Native Material 3 Slider. Lives in the LTR media-controls row, so it stays LTR in RTL chrome. Internal: reused by the desktop wide bar. */
 @Composable
-private fun SeekSlider(
+internal fun SeekSlider(
     positionMs: Long,
     durationMs: Long,
     onSeek: (Long) -> Unit,
@@ -255,8 +255,9 @@ private fun SeekSlider(
     )
 }
 
+// Internal: reused by the desktop wide bar.
 @Composable
-private fun RecitationQueue(
+internal fun RecitationQueue(
     recitations: List<Recitation>,
     currentId: Int?,
     isPlaying: Boolean,
@@ -326,8 +327,8 @@ private fun RecitationQueue(
     }
 }
 
-/** Website-style `m:ss`, Western digits, LTR media clocks. */
-private fun formatClock(ms: Long): String {
+/** Website-style `m:ss`, Western digits, LTR media clocks. Internal: reused by the desktop wide bar. */
+internal fun formatClock(ms: Long): String {
     val total = (ms / 1000).coerceAtLeast(0)
     val minutes = total / 60
     val seconds = total % 60

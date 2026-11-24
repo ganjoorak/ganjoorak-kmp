@@ -10,13 +10,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
+import net.ganjoorak.app.AppGraph
+import net.ganjoorak.app.ui.player.DesktopPlayerBar
+
 /**
  * Desktop window chrome: full-width RTL content, with a wide navigation rail
  * flush to the physical right (RTL leading) edge, expanding over the content.
- * Content (and the mini player) reserves the collapsed rail width on the
+ * Content (and the wide player bar) reserves the collapsed rail width on the
  * physical right so lists are not clipped under the rail. Poem actions live in
  * a small floating group at the bottom of the rail column (see
- * [AppFloatingSideNav]).
+ * [AppFloatingSideNav]). The phone MiniPlayer pill is replaced here by the
+ * wide [DesktopPlayerBar]; the shared `miniPlayer` slot is only used by the
+ * phone-chrome fallback (see [AppLayoutChrome]).
  */
 @Composable
 fun DesktopAppChrome(
@@ -26,14 +31,13 @@ fun DesktopAppChrome(
     onSelect: (MenuTarget) -> Unit,
     onOpenSearch: () -> Unit,
     navContent: @Composable () -> Unit,
-    miniPlayer: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().absolutePadding(right = DesktopRailColumnWidth)) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Box(Modifier.weight(1f)) { navContent() }
-                    miniPlayer()
+                    DesktopPlayerBar(player = AppGraph.instance.player)
                 }
             }
             // RTL so the rail's leading edge and the expanded modal sit on the right.
