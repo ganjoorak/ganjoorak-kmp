@@ -116,11 +116,18 @@ class SettingsStore(settings: Settings) {
 }
 
 /** The stored poem of the day; null until the first pick. */
-class DailyPoemStore(settings: Settings) {
-    private val value = PersistedValue(settings, "daily_poem", serializer<DailyPoem?>(), null)
-    val dailyPoem: StateFlow<DailyPoem?> = value.flow
+class DailyPoemStore(private val settings: Settings) {
+    private val key = "daily_poem"
+    private val state = MutableStateFlow(
+        settings.getStringOrNull(key)
+            ?.let { runCatching { GanjoorJson.decodeFromString(DailyPoem.serializer(), it) }.getOrNull() },
+    )
+    val dailyPoem: StateFlow<DailyPoem?> = state.asStateFlow()
 
-    fun set(poem: DailyPoem) = value.update { poem }
+    fun set(poem: DailyPoem) {
+        state.value = poem
+        settings.putString(key, GanjoorJson.encodeToString(DailyPoem.serializer(), poem))
+    }
 }
 
 class LibraryStore(settings: Settings) {
