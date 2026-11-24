@@ -64,7 +64,9 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.androidx.work.runtime.ktx)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
