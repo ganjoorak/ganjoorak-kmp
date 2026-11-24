@@ -50,6 +50,7 @@ import net.ganjoorak.app.ui.components.AppTabs
 import net.ganjoorak.app.ui.components.MessageBox
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.components.SectionLabel
+import net.ganjoorak.app.ui.components.tabSwipe
 import net.ganjoorak.app.util.toPersianDigits
 
 enum class FavoritesSection(val label: String) {
@@ -87,6 +88,14 @@ fun FavoritesScreen(
     val poets = settings.followedPoets
     var section by rememberSaveable { mutableStateOf(initialSection) }
     var poemTab by rememberSaveable { mutableStateOf(PoemLibraryTab.Saved) }
+
+    // Swipe flattens the two tab rows into one page sequence: saved, history, poets.
+    val favoritePages = listOf(
+        FavoritesSection.Poems to PoemLibraryTab.Saved,
+        FavoritesSection.Poems to PoemLibraryTab.History,
+        FavoritesSection.Poets to PoemLibraryTab.Saved,
+    )
+    val favoritePageIndex = if (section == FavoritesSection.Poems) poemTab.ordinal else favoritePages.lastIndex
 
     AppPage(
         title = "علاقه‌مندی‌ها",
@@ -135,6 +144,20 @@ fun FavoritesScreen(
                 }
             }
         },
+        contentModifier = Modifier.tabSwipe(
+            onNext = {
+                favoritePages.getOrNull(favoritePageIndex + 1)?.let { (nextSection, nextTab) ->
+                    section = nextSection
+                    poemTab = nextTab
+                }
+            },
+            onPrevious = {
+                favoritePages.getOrNull(favoritePageIndex - 1)?.let { (prevSection, prevTab) ->
+                    section = prevSection
+                    poemTab = prevTab
+                }
+            },
+        ),
     ) {
         item {
             AnimatedContent(

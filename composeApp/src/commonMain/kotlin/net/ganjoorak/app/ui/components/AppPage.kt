@@ -57,6 +57,7 @@ fun AppPage(
     actions: @Composable RowScope.() -> Unit = {},
     headerExtra: (@Composable () -> Unit)? = null,
     listState: LazyListState = rememberLazyListState(),
+    contentModifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -71,7 +72,7 @@ fun AppPage(
         val systemBars = WindowInsets.navigationBars.asPaddingValues()
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().then(contentModifier),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
                 start = persistent.calculateStartPadding(layout),
