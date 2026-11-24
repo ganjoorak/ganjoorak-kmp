@@ -57,6 +57,7 @@ import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.components.TopicChip
 import net.ganjoorak.app.ui.components.rememberLoader
+import net.ganjoorak.app.ui.components.tabSwipe
 import net.ganjoorak.app.util.hijriLifespan
 import net.ganjoorak.app.util.normalizeForSearch
 import net.ganjoorak.app.util.toPersianDigits
@@ -118,6 +119,9 @@ fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit, onOp
         activeFilter != null -> tabEntries.filter { it.group == activeFilter }
         else -> tabEntries
     }
+
+    val tabs = PoetsTab.entries
+    val tabIndex = tabs.indexOf(tab)
 
     AppPage(
         title = "شاعران",
@@ -181,6 +185,13 @@ fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit, onOp
                 }
             }
         },
+        // No swipe while searching: the tabs are hidden and the list shows matches
+        // from every tab, so a swipe would switch to a tab the user cannot see.
+        contentModifier = Modifier.tabSwipe(
+            enabled = needle.isEmpty(),
+            onNext = { tabs.getOrNull(tabIndex + 1)?.let { tab = it; filter = null } },
+            onPrevious = { tabs.getOrNull(tabIndex - 1)?.let { tab = it; filter = null } },
+        ),
     ) {
         val anyLoading = classicState is Loadable.Loading || modernState is Loadable.Loading
         val error = (classicState as? Loadable.Error) ?: (modernState as? Loadable.Error)

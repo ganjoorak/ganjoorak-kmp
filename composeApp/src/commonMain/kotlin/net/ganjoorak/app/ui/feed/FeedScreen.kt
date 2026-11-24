@@ -70,6 +70,7 @@ import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.LoadingBox
 import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.components.TopicChip
+import net.ganjoorak.app.ui.components.tabSwipe
 import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.poem.PoemFloatingControls
 import net.ganjoorak.app.ui.poem.poemChromeBottomSpace
@@ -127,7 +128,14 @@ fun FeedScreen(
         Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), contentAlignment = Alignment.Center) {
             eyebrow()
         }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        val modes = FeedMode.entries
+        val modeIndex = modes.indexOf(settings.feedMode)
+        Box(
+            Modifier.weight(1f).fillMaxWidth().tabSwipe(
+                onNext = { modes.getOrNull(modeIndex + 1)?.let(graph.settings::setFeedMode) },
+                onPrevious = { modes.getOrNull(modeIndex - 1)?.let(graph.settings::setFeedMode) },
+            ),
+        ) {
             AnimatedContent(
                 targetState = state,
                 contentKey = { it.source.mode },
