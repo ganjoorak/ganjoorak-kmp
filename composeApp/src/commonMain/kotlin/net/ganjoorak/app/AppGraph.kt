@@ -44,6 +44,7 @@ class AppGraph {
     val downloads = net.ganjoorak.app.data.offline.OfflineDownloader(repository, offline, scope)
     val settings = SettingsStore(storage)
     val library = LibraryStore(storage)
+    val dailyPoem = net.ganjoorak.app.data.local.DailyPoemStore(storage)
     val accounts = AccountRepository(
         settings = storage,
         apiFactory = { token, onCookie ->

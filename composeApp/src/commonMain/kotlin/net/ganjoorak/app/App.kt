@@ -29,7 +29,10 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import coil3.request.crossfade
+import net.ganjoorak.app.data.DailyPoemPicker
 import net.ganjoorak.app.data.PoemRef
+import net.ganjoorak.app.platform.currentTimeMillis
+import net.ganjoorak.app.platform.refreshDailyPoemWidget
 import net.ganjoorak.app.data.account.StoryPerson
 import net.ganjoorak.app.data.local.FeedMode
 import net.ganjoorak.app.ui.auth.AuthScreen
@@ -93,6 +96,29 @@ private fun AppShell() {
     val storyState by graph.stories.state.collectAsState()
     val settings by graph.settings.settings.collectAsState()
     val poemChromeHost = remember { PoemChromeHost() }
+
+    // A widget / notification tap opens its poem, whether the app was cold or already running.
+    val pendingPoem by PendingDeepLink.poemRef.collectAsState()
+    LaunchedEffect(pendingPoem) {
+        pendingPoem?.let { ref ->
+            PendingDeepLink.consume()
+            backStack.open(ref.route())
+        }
+    }
+
+    // The stored poem of the day is picked once (here, or by the daily worker) and
+    // shared by the widget and the notification; re-pick when the day or the
+    // poet choice changes, then push the new poem to the widget.
+    LaunchedEffect(settings.dailyPoemMode, settings.dailyPoetKey) {
+        DailyPoemPicker.refreshIfNeeded(
+            fetchRandom = { key -> graph.repository.randomPoem(key) },
+            settings = graph.settings.settings.value,
+            stored = graph.dailyPoem.dailyPoem.value,
+            onPicked = graph.dailyPoem::set,
+            nowMillis = currentTimeMillis(),
+        )
+        refreshDailyPoemWidget()
+    }
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     val goTo: (AppRoute) -> Unit = { route -> backStack.switchTo(route) }

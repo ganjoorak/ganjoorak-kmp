@@ -26,6 +26,9 @@ enum class CoupletLayout { Auto, Stacked, SideBySide }
 /** Where the home feed draws its poems from. */
 enum class FeedMode { All, Following, Followed }
 
+/** Where the daily poem comes from: any poet, a followed poet, or one chosen poet. */
+enum class DailyPoemMode { Random, Followed, Poet }
+
 /** A poet whose poems appear in the home feed; [key] is a [net.ganjoorak.app.data.Poet.key]. */
 @Serializable
 data class FollowedPoet(val key: String, val name: String, val slug: String = "")
@@ -41,6 +44,33 @@ data class AppSettings(
     /** Empty means random poems from all of Ganjoor, like the website. */
     val followedPoets: List<FollowedPoet> = emptyList(),
     val feedMode: FeedMode = FeedMode.All,
+    /** Daily-poem widget + notification: which poet the day's poem is drawn from. */
+    val dailyPoemMode: DailyPoemMode = DailyPoemMode.Random,
+    /** [net.ganjoorak.app.data.Poet.key] for [DailyPoemMode.Poet]; null otherwise. */
+    val dailyPoetKey: String? = null,
+    /** Display name for [dailyPoetKey], so the settings row needs no lookup. */
+    val dailyPoetName: String? = null,
+    /** Local daily notification (no server, no FCM). Off until the user opts in. */
+    val dailyNotificationEnabled: Boolean = false,
+    /** Local time of the daily notification, Asia/Tehran. */
+    val dailyNotificationHour: Int = 9,
+    val dailyNotificationMinute: Int = 0,
+)
+
+/**
+ * The poem of one day, picked once and shared by the widget and the notification
+ * so both show the same poem all day. [lines] are the first verses (up to four).
+ */
+@Serializable
+data class DailyPoem(
+    /** Tehran date the poem was picked for, `yyyy-MM-dd`. */
+    val date: String,
+    val mode: DailyPoemMode,
+    val poetKey: String?,
+    val ref: PoemRef,
+    val title: String,
+    val poetName: String,
+    val lines: List<String>,
 )
 
 /** A JSON value persisted in [Settings] and mirrored as a [StateFlow]. */
@@ -83,6 +113,14 @@ class SettingsStore(settings: Settings) {
     fun replaceFollowedPoets(poets: List<FollowedPoet>) = update { it.copy(followedPoets = poets) }
 
     fun setFeedMode(mode: FeedMode) = update { it.copy(feedMode = mode) }
+}
+
+/** The stored poem of the day; null until the first pick. */
+class DailyPoemStore(settings: Settings) {
+    private val value = PersistedValue(settings, "daily_poem", serializer<DailyPoem?>(), null)
+    val dailyPoem: StateFlow<DailyPoem?> = value.flow
+
+    fun set(poem: DailyPoem) = value.update { poem }
 }
 
 class LibraryStore(settings: Settings) {

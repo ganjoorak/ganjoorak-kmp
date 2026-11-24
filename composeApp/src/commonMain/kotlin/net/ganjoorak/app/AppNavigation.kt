@@ -6,9 +6,25 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.data.PoetSource
 import net.ganjoorak.app.ui.menu.MenuTarget
+
+/** A poem the app was opened for (widget / notification tap), consumed once by the shell. */
+object PendingDeepLink {
+    private val _poemRef = MutableStateFlow<PoemRef?>(null)
+    val poemRef: StateFlow<PoemRef?> = _poemRef.asStateFlow()
+
+    fun open(ref: PoemRef) {
+        _poemRef.value = ref
+    }
+
+    fun consume(): PoemRef? = _poemRef.getAndUpdate { null }
+}
 
 @Serializable sealed interface AppRoute : NavKey
 
