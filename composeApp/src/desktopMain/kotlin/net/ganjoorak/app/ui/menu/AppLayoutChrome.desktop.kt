@@ -24,10 +24,6 @@ actual fun AppLayoutChrome(
         )
     } else {
         PhoneAppChrome(
-            current = current,
-            favoritesCount = favoritesCount,
-            onSelect = onSelect,
-            onOpenSearch = onOpenSearch,
             navContent = navContent,
             miniPlayer = miniPlayer,
         )

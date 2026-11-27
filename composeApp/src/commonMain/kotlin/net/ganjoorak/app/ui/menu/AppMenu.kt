@@ -44,7 +44,7 @@ import org.jetbrains.compose.resources.painterResource
 enum class MenuTarget { Search, Home, Explore, Poets, Favorites, Profile, Settings, OfflineDownloads }
 
 /** The overflow menu, shown in a bottom sheet. The four primary destinations live in the
- * floating pill nav now, so only the rest sits here: search, library, profile, settings. */
+ * tiny nav mini-pill now, so only the rest sits here: search, library, profile, settings. */
 @Composable
 fun AppMenu(
     current: MenuTarget?,

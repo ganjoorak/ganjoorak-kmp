@@ -49,6 +49,7 @@ import net.ganjoorak.app.ui.components.MessageBox
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.components.SectionLabel
 import net.ganjoorak.app.ui.components.tabSwipe
+import net.ganjoorak.app.ui.menu.TinyNav
 import net.ganjoorak.app.ui.theme.MotionTokens
 import net.ganjoorak.app.util.toPersianDigits
 
@@ -108,6 +109,8 @@ fun FavoritesScreen(
         },
         onBack = onBack,
         actions = {
+            // The tiny nav lives in the top bar here: the bottom menu is gone.
+            TinyNav()
             when {
                 section == FavoritesSection.Poems && poemTab == PoemLibraryTab.History && history.isNotEmpty() -> {
                     TextButton(onClick = library::clearHistory) { Text("پاک کردن") }

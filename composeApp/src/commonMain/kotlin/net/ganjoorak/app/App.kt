@@ -43,7 +43,9 @@ import net.ganjoorak.app.ui.menu.AppMenu
 import net.ganjoorak.app.ui.menu.FeedPoetsSheet
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.menu.MenuTarget
-import net.ganjoorak.app.ui.menu.floatingNavBottomReserve
+import net.ganjoorak.app.ui.menu.LocalTinyNav
+import net.ganjoorak.app.ui.menu.TinyNavState
+import net.ganjoorak.app.ui.menu.persistentBottomReserve
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
 import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.player.MiniPlayer
@@ -82,10 +84,12 @@ fun App() {
 }
 
 /**
- * Shared shell: the back stack, mini-player, the phone destination bar, and
- * the overflow menu sheet (opened from the Feed top row). Persistent chrome
- * is provided by [AppLayoutChrome], which is the phone bar on Android and
- * the desktop rail overlay in desktopMain.
+ * Shared shell: the back stack, mini-player, and the overflow menu sheet
+ * (opened from the hamburger in the poem controls). Navigation on phone is
+ * the tiny [TinyNav] mini-pill in the poem controls row and the list bars;
+ * there is no bottom bar any more. Persistent chrome is provided by
+ * [AppLayoutChrome], which is the phone shell on Android and the desktop
+ * rail overlay in desktopMain.
  */
 @Composable
 private fun AppShell() {
@@ -147,8 +151,14 @@ private fun AppShell() {
         LocalAppActions provides actions,
         LocalPoemChromeHost provides poemChromeHost,
         LocalRecitationListHost provides recitationListHost,
+        LocalTinyNav provides TinyNavState(
+            current = current?.menuTarget(),
+            favoritesCount = settings.followedPoets.size,
+            onSelect = selectMenu,
+            onOpenSearch = openSearch,
+        ),
         LocalPersistentNavPadding provides PaddingValues(
-            bottom = if (usesSideNavigation) 0.dp else floatingNavBottomReserve(),
+            bottom = if (usesSideNavigation) 0.dp else persistentBottomReserve(),
         ),
     ) {
         AppLayoutChrome(
@@ -159,8 +169,9 @@ private fun AppShell() {
             onOpenSearch = openSearch,
             navContent = { AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true }) },
             miniPlayer = {
-                // No navigationBars padding here: the floating pill row below
-                // consumes the system-bars insets itself, so padding the player too would double it.
+                // No navigationBars padding here: the player pads itself
+                // (see MiniPlayer) so it never sits under the gesture bar,
+                // and takes no space at all when idle.
                 MiniPlayer(
                     graph.player,
                     onOpenPoem = { backStack.open(it.route()) },

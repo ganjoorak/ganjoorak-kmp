@@ -285,7 +285,7 @@ expect fun SystemBarsEffect(lightBackground: Boolean)
  * Android 12+ returns the platform dynamic scheme (light/dark following the
  * system); older Android and desktop return null, and the caller falls back
  * to the monochrome Light/Dark scheme. The scheme drives ALL roles, so the
- * floating pill follows it automatically. Note: a wallpaper can be any hue —
+ * tiny nav follows it automatically. Note: a wallpaper can be any hue —
  * including greenish ones. That is the point of this mode: it is the user's
  * explicit choice, not the app default.
  */

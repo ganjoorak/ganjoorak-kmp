@@ -71,6 +71,7 @@ import net.ganjoorak.app.ui.components.TopicChip
 import net.ganjoorak.app.ui.components.tabSwipe
 import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.poem.PoemFloatingControls
+import net.ganjoorak.app.ui.poem.PoemSideActionsColumn
 import net.ganjoorak.app.ui.poem.poemChromeBottomSpace
 import net.ganjoorak.app.ui.poem.PoemHeader
 import net.ganjoorak.app.ui.poem.coupletNumbers
@@ -230,6 +231,18 @@ fun FeedScreen(
                     recitationListHost.open = true
                 }
             },
+            onOpenPoet = onOpenPoet,
+            // Poet / heart / share live in the vertical column on the left
+            // edge here too (as on the poem screen), so the bottom row stays
+            // tiny — just the mini-pill, the hamburger and play.
+            sideActions = true,
+        )
+        // Same gating as the controls above; the column no-ops on a null poem.
+        if (showPoemChrome) PoemSideActionsColumn(
+            poem = current.takeUnless { hidePoemActions },
+            isSaved = current != null && saved.any { it.ref == current.ref },
+            onToggleSave = { current?.let(graph.library::toggleSaved) },
+            onShare = { sharing = current },
             onOpenPoet = onOpenPoet,
         )
     }

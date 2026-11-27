@@ -2,6 +2,7 @@ package net.ganjoorak.app.ui.poem
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -48,6 +50,7 @@ import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
+import net.ganjoorak.app.ui.menu.TinyNav
 
 /** Height the floating bar takes at the bottom; poem lists pad their end by this much. */
 val PoemControlsHeight = 80.dp
@@ -83,9 +86,9 @@ fun poemChromeBottomSpace(): Dp {
 }
 
 /**
- * Dispatches to the phone chip bar (v0.1.2: menu / play / share-like-poet) or
- * publishes the desktop poem actions for the side rail column (play /
- * share-like-poet; destinations stay in the rail).
+ * Dispatches to the phone chip bar (tiny nav + hamburger / play /
+ * share-like-poet) or publishes the desktop poem actions for the side rail
+ * column (play / share-like-poet; destinations stay in the rail).
  */
 @Composable
 fun BoxScope.PoemFloatingControls(
@@ -182,11 +185,14 @@ private fun SideActionButton(onClick: () -> Unit, description: String, content: 
 }
 
 /**
- * Phone controls, matching tag v0.1.2: a compact bar of groups — «menu»,
- * «play» (a plain play/pause button; long-press opens the recitation list
- * in the bottom player) and, unless [sideActions] moves them to the vertical
- * column, «share, like, poet», right to left. The menu chip stays visible
- * even when there is no poem (empty or «دنبال‌شده‌ها» feed).
+ * Phone controls, matching tag v0.1.2: a compact bar of groups — the tiny
+ * nav (destinations + search, where the hamburger used to sit) plus the
+ * hamburger itself as a tiny circle beside it, «play» (a plain play/pause
+ * button; long-press opens the recitation list in the bottom player) and,
+ * unless [sideActions] moves them to the vertical column, «share, like,
+ * poet», right to left. The hamburger stays visible even when there is no
+ * poem (empty or «دنبال‌شده‌ها» feed) — it is the only entry to the menu
+ * sheet.
  */
 @Composable
 private fun BoxScope.PhonePoemFloatingControls(
@@ -209,12 +215,14 @@ private fun BoxScope.PhonePoemFloatingControls(
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 8.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // The menu chip is back in the pill (as before Phase A) — it is the
-        // only entry to the menu sheet, and stays visible with no poem.
-        Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
+        // The tiny nav took the hamburger's spot (Hadi 2026-11-27: the
+        // bottom menu is deleted, the nav is very small now); the hamburger
+        // is the tiny circle right beside it.
+        TinyNav()
+        TinyMenuButton(onClick = app.openMenu)
         if (poem != null) {
             if (poem.recitations.isNotEmpty()) {
                 Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
@@ -241,6 +249,27 @@ private fun BoxScope.PhonePoemFloatingControls(
                 }
             }
         }
+    }
+}
+
+/** The hamburger as a tiny 28dp circle beside the [TinyNav] mini-pill. */
+@Composable
+private fun TinyMenuButton(onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(28.dp)
+            .shadow(6.dp, CircleShape)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick, role = Role.Button),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Filled.Menu,
+            contentDescription = "منو",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 

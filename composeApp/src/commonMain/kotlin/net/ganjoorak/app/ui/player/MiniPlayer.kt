@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -83,6 +86,10 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
     ) {
+        // The floating pill row that used to consume the system-bars insets
+        // is gone, so the player pads itself now: it never sits under the
+        // gesture bar, and takes no space at all when idle.
+        val navBarsBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         Box(
             Modifier
                 .fillMaxWidth()
@@ -90,7 +97,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
                     start = 12.dp,
                     end = 12.dp,
                     top = 8.dp,
-                    bottom = if (usesSideNavigation) 16.dp else 8.dp,
+                    bottom = (if (usesSideNavigation) 16.dp else 8.dp) + navBarsBottom,
                 ),
             contentAlignment = Alignment.Center,
         ) {
