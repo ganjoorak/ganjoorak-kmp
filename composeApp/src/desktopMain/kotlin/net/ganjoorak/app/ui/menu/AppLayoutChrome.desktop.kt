@@ -23,6 +23,12 @@ actual fun AppLayoutChrome(
             navContent = navContent,
         )
     } else {
-        PhoneAppChrome(navContent = navContent, miniPlayer = miniPlayer)
+        PhoneAppChrome(
+            current = current,
+            favoritesCount = favoritesCount,
+            onSelect = onSelect,
+            navContent = navContent,
+            miniPlayer = miniPlayer,
+        )
     }
 }

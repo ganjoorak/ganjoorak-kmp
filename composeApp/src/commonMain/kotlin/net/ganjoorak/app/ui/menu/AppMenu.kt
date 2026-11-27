@@ -15,13 +15,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,9 +41,10 @@ import net.ganjoorak.app.ui.stories.StoriesRow
 import net.ganjoorak.app.util.toPersianDigits
 import org.jetbrains.compose.resources.painterResource
 
-enum class MenuTarget { Search, Home, Explore, Poets, Favorites, Profile, Settings }
+enum class MenuTarget { Search, Home, Explore, Poets, Favorites, Profile, Settings, OfflineDownloads }
 
-/** The site's menu, shown in a bottom sheet: destinations in two groups, then settings. */
+/** The overflow menu, shown in a bottom sheet. The four primary destinations live in the
+ * [ShortNavigationBar] now, so only the rest sits here: search, library, profile, settings. */
 @Composable
 fun AppMenu(
     current: MenuTarget?,
@@ -63,10 +62,6 @@ fun AppMenu(
         StoriesRow(people = stories, isUnseen = isUnseen, onOpen = onOpenStory)
         Column(Modifier.padding(vertical = 8.dp)) {
             MenuItem(Icons.Filled.Search, "جست‌وجو", current == MenuTarget.Search) { onSelect(MenuTarget.Search) }
-            MenuGroup("کشف")
-            MenuItem(Icons.Filled.Home, "صفحهٔ اصلی", current == MenuTarget.Home) { onSelect(MenuTarget.Home) }
-            MenuItem(Icons.Filled.Explore, "کاوش", current == MenuTarget.Explore) { onSelect(MenuTarget.Explore) }
-            MenuItem(Icons.Filled.People, "شاعران", current == MenuTarget.Poets) { onSelect(MenuTarget.Poets) }
             MenuGroup("کتابخانهٔ من")
             MenuItem(
                 Icons.Filled.FavoriteBorder,
@@ -75,6 +70,7 @@ fun AppMenu(
                 count = settings.followedPoets.size.takeIf { it > 0 },
             ) { onSelect(MenuTarget.Favorites) }
             MenuItem(Icons.Filled.AccountCircle, "حساب کاربری", current == MenuTarget.Profile) { onSelect(MenuTarget.Profile) }
+            MenuItem(Icons.Filled.Download, "دانلودهای آفلاین", current == MenuTarget.OfflineDownloads) { onSelect(MenuTarget.OfflineDownloads) }
         }
 
         HorizontalDivider(color = colors.outlineVariant)

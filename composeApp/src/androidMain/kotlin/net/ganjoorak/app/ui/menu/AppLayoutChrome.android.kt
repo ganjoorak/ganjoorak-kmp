@@ -12,5 +12,11 @@ actual fun AppLayoutChrome(
     navContent: @Composable () -> Unit,
     miniPlayer: @Composable () -> Unit,
 ) {
-    PhoneAppChrome(navContent = navContent, miniPlayer = miniPlayer)
+    PhoneAppChrome(
+        current = current,
+        favoritesCount = favoritesCount,
+        onSelect = onSelect,
+        navContent = navContent,
+        miniPlayer = miniPlayer,
+    )
 }

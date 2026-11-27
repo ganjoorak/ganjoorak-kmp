@@ -5,9 +5,10 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.unit.dp
 
 /**
- * Extra padding the shell used to reserve under content for a persistent
- * destination bar. Phone navigation is the v0.1.2 chip again, and the desktop
- * rail width is reserved by the chrome itself, so this stays zero. Kept so list
- * screens can still read a single inset without branching on the platform.
+ * Extra padding the shell reserves under content for the persistent
+ * destination bar: the phone [ShortNavigationBar] height (64dp) on phone,
+ * zero where the side rail is used instead. The value is provided by the
+ * shell in App.kt; list screens and the poem chrome read it from here so
+ * no screen has to branch on the platform.
  */
 val LocalPersistentNavPadding = compositionLocalOf { PaddingValues(0.dp) }

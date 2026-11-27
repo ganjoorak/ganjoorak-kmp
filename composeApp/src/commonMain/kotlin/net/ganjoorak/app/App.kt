@@ -1,10 +1,7 @@
 package net.ganjoorak.app
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -32,6 +29,7 @@ import coil3.request.crossfade
 import net.ganjoorak.app.data.DailyPoemPicker
 import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.platform.currentTimeMillis
+import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.platform.refreshDailyPoemWidget
 import net.ganjoorak.app.data.account.StoryPerson
 import net.ganjoorak.app.data.local.FeedMode
@@ -45,6 +43,7 @@ import net.ganjoorak.app.ui.menu.AppMenu
 import net.ganjoorak.app.ui.menu.FeedPoetsSheet
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.menu.MenuTarget
+import net.ganjoorak.app.ui.menu.ShortNavBarHeight
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
 import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.player.MiniPlayer
@@ -83,10 +82,10 @@ fun App() {
 }
 
 /**
- * Shared shell: the back stack, mini-player, and (on the phone) the v0.1.2
- * menu sheet opened from the bottom chip. Persistent chrome is provided by
- * [AppLayoutChrome], which is a phone column on Android and the desktop rail
- * overlay in desktopMain.
+ * Shared shell: the back stack, mini-player, the phone destination bar, and
+ * the overflow menu sheet (opened from the Feed top row). Persistent chrome
+ * is provided by [AppLayoutChrome], which is the phone bar on Android and
+ * the desktop rail overlay in desktopMain.
  */
 @Composable
 private fun AppShell() {
@@ -135,6 +134,7 @@ private fun AppShell() {
             MenuTarget.Favorites -> if (current !is SavedRoute && current !is FollowingRoute) goTo(SavedRoute)
             MenuTarget.Profile -> goTo(ProfileRoute)
             MenuTarget.Settings -> goTo(SettingsRoute)
+            MenuTarget.OfflineDownloads -> backStack.open(OfflineDownloadsRoute, singleTop = true)
         }
     }
     val actions = AppActions(
@@ -147,7 +147,9 @@ private fun AppShell() {
         LocalAppActions provides actions,
         LocalPoemChromeHost provides poemChromeHost,
         LocalRecitationListHost provides recitationListHost,
-        LocalPersistentNavPadding provides PaddingValues(0.dp),
+        LocalPersistentNavPadding provides PaddingValues(
+            bottom = if (usesSideNavigation) 0.dp else ShortNavBarHeight,
+        ),
     ) {
         AppLayoutChrome(
             current = current?.menuTarget(),
@@ -157,10 +159,12 @@ private fun AppShell() {
             onOpenSearch = openSearch,
             navContent = { AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true }) },
             miniPlayer = {
+                // No navigationBars padding here: the ShortNavigationBar below
+                // consumes the system-bars insets itself (its default
+                // windowInsets), so padding the player too would double it.
                 MiniPlayer(
                     graph.player,
                     onOpenPoem = { backStack.open(it.route()) },
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                 )
             },
         )

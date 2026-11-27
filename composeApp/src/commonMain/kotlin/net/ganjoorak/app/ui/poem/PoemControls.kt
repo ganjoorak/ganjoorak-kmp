@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -43,7 +42,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.platform.usesSideNavigation
-import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 
@@ -105,11 +103,11 @@ fun BoxScope.PoemFloatingControls(
 }
 
 /**
- * Phone controls, matching tag v0.1.2: a compact bar of three groups —
- * «menu», «play» (a plain play/pause button; long-press opens the recitation
- * list in the bottom player) and «share, like, poet», right to left. Search
- * lives in the menu. The menu chip stays visible even when there is no poem
- * (empty or «دنبال‌شده‌ها» feed).
+ * Phone controls, matching tag v0.1.2: a compact bar of groups — «play» (a
+ * plain play/pause button; long-press opens the recitation list in the
+ * bottom player) and «share, like, poet», right to left. Destinations live
+ * in the ShortNavigationBar now, so the menu chip is gone from this bar;
+ * the overflow sheet opens from the Feed top row instead.
  */
 @Composable
 private fun BoxScope.PhonePoemFloatingControls(
@@ -123,7 +121,6 @@ private fun BoxScope.PhonePoemFloatingControls(
     onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)?,
 ) {
-    val app = LocalAppActions.current
     val colors = MaterialTheme.colorScheme
     Row(
         Modifier
@@ -134,7 +131,6 @@ private fun BoxScope.PhonePoemFloatingControls(
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
         if (poem != null) {
             if (poem.recitations.isNotEmpty()) {
                 Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
