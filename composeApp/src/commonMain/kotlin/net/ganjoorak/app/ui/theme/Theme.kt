@@ -243,12 +243,15 @@ private fun Typography.withFont(font: FontFamily) = Typography(
 @Composable
 fun GanjoorakTheme(settings: AppSettings, content: @Composable () -> Unit) {
     val dark = when (settings.theme) {
-        ThemeMode.System -> isSystemInDarkTheme()
+        ThemeMode.System, ThemeMode.Dynamic -> isSystemInDarkTheme()
         ThemeMode.Dark -> true
         ThemeMode.Light, ThemeMode.Paper -> false
     }
     val colors: ColorScheme = when {
         settings.theme == ThemeMode.Paper -> PaperColors
+        // Dynamic: wallpaper scheme on Android 12+; older Android and
+        // desktop return null and fall back to the monochrome scheme.
+        settings.theme == ThemeMode.Dynamic -> dynamicColorScheme(dark) ?: if (dark) DarkColors else LightColors
         dark -> DarkColors
         else -> LightColors
     }
@@ -276,3 +279,15 @@ fun GanjoorakTheme(settings: AppSettings, content: @Composable () -> Unit) {
 /** Keeps status/navigation bar icons legible against the app background. */
 @Composable
 expect fun SystemBarsEffect(lightBackground: Boolean)
+
+/**
+ * Material You dynamic colour from the phone wallpaper (ThemeMode.Dynamic).
+ * Android 12+ returns the platform dynamic scheme (light/dark following the
+ * system); older Android and desktop return null, and the caller falls back
+ * to the monochrome Light/Dark scheme. The scheme drives ALL roles, so the
+ * floating pill follows it automatically. Note: a wallpaper can be any hue —
+ * including greenish ones. That is the point of this mode: it is the user's
+ * explicit choice, not the app default.
+ */
+@Composable
+expect fun dynamicColorScheme(dark: Boolean): ColorScheme?

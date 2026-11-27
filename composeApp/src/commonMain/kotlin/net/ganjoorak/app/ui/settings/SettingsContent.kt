@@ -86,7 +86,7 @@ fun SettingsContent() {
 
         SectionTitle("پوسته")
         ChipRow(
-            options = listOf(ThemeMode.Dark, ThemeMode.Light, ThemeMode.Paper, ThemeMode.System),
+            options = listOf(ThemeMode.Dark, ThemeMode.Light, ThemeMode.Paper, ThemeMode.System, ThemeMode.Dynamic),
             selected = settings.theme,
             label = {
                 when (it) {
@@ -94,6 +94,7 @@ fun SettingsContent() {
                     ThemeMode.Light -> "روشن"
                     ThemeMode.Paper -> "کاغذی"
                     ThemeMode.System -> "هماهنگ با دستگاه"
+                    ThemeMode.Dynamic -> "پویا — از والپیپر"
                 }
             },
             onSelect = { mode -> store.update { it.copy(theme = mode) } },

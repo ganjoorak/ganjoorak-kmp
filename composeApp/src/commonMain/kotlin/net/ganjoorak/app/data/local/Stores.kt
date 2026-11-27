@@ -17,7 +17,7 @@ import net.ganjoorak.app.platform.currentTimeMillis
 import net.ganjoorak.app.data.account.MAX_FAVORITES
 import net.ganjoorak.app.data.account.MAX_HISTORY
 
-enum class ThemeMode { System, Light, Dark, Paper }
+enum class ThemeMode { System, Light, Dark, Paper, Dynamic }
 
 enum class PoemFont { Vazirmatn, Samim, Tanha, Shabnam, Gandom, Parastoo, Sahel, Nahid, IranNastaliq }
 
