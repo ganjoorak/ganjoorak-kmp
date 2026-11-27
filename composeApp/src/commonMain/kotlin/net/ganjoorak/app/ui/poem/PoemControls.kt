@@ -6,9 +6,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -94,20 +96,96 @@ fun BoxScope.PoemFloatingControls(
     onOpenPoet: ((String) -> Unit)?,
     onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)? = null,
+    /**
+     * When true (poem screen), the share / like / poet pill is omitted here —
+     * those three actions live in the vertical [PoemSideActionsColumn] instead.
+     * False (feed) keeps the bar as it was, so nothing is lost there.
+     */
+    sideActions: Boolean = false,
 ) {
     if (usesSideNavigation) {
         DesktopPoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra)
     } else {
-        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra)
+        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra, sideActions)
     }
 }
 
 /**
- * Phone controls, matching tag v0.1.2: a compact bar of groups — «play» (a
- * plain play/pause button; long-press opens the recitation list in the
- * bottom player) and «share, like, poet», right to left. Destinations live
- * in the floating pill nav now, so the menu chip is gone from this bar;
- * the overflow sheet opens from the Feed top row instead.
+ * Poem screen only (phone): poet / heart / share as a vertical column on the
+ * LEFT edge (RTL end side), stacked just above the nav pill row, bottom-aligned
+ * with the play bar. Top to bottom: poet (circular portrait, opens the poet
+ * page), heart (favourite toggle), share. Desktop is a no-op — the side rail
+ * column hosts these actions there via [PoemChrome].
+ */
+@Composable
+fun BoxScope.PoemSideActionsColumn(
+    poem: Poem?,
+    isSaved: Boolean,
+    onToggleSave: () -> Unit,
+    onShare: () -> Unit,
+    onOpenPoet: ((String) -> Unit)?,
+) {
+    if (usesSideNavigation) return
+    val current = poem ?: return
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier
+            .align(Alignment.BottomEnd)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(end = 12.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val key = current.poetKey
+        if (key != null && onOpenPoet != null) {
+            SideActionButton(onClick = { onOpenPoet(key) }, description = current.poetName) {
+                PoetAvatar(current.poetName, current.poetImageUrl, 28.dp)
+            }
+        }
+        SideActionButton(
+            onClick = onToggleSave,
+            description = if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
+        ) {
+            Icon(
+                if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = null,
+                tint = if (isSaved) colors.error else colors.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        SideActionButton(onClick = onShare, description = "هم‌رسانی") {
+            Icon(
+                Icons.Filled.Share,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+/** One 48dp circular button of the side column. */
+@Composable
+private fun SideActionButton(onClick: () -> Unit, description: String, content: @Composable () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(48.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shadowElevation = 6.dp,
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+    }
+}
+
+/**
+ * Phone controls: the play capsule pill, centred at the bottom. The
+ * share / like / poet actions live in the vertical [PoemSideActionsColumn]
+ * on the poem screen ([sideActions]); on the feed they stay in a second
+ * pill next to the play capsule. Destinations live in the floating pill
+ * nav; the menu chip is gone from this bar, the overflow sheet opens from
+ * the Feed top row instead.
  */
 @Composable
 private fun BoxScope.PhonePoemFloatingControls(
@@ -120,6 +198,7 @@ private fun BoxScope.PhonePoemFloatingControls(
     onOpenPoet: ((String) -> Unit)?,
     onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)?,
+    sideActions: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     Row(
@@ -135,19 +214,24 @@ private fun BoxScope.PhonePoemFloatingControls(
             if (poem.recitations.isNotEmpty()) {
                 Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
             }
-            Pill {
-                extra?.invoke(this)
-                BarIcon(Icons.Filled.Share, "هم‌رسانی", onShare)
-                BarIcon(
-                    if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-                    onToggleSave,
-                    tint = if (isSaved) colors.error else null,
-                )
-                val key = poem.poetKey
-                if (key != null && onOpenPoet != null) {
-                    BarItem(onClick = { onOpenPoet(key) }, description = poem.poetName) {
-                        PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
+            // With sideActions the share / like / poet actions live in the
+            // vertical PoemSideActionsColumn on the left edge instead; the
+            // pill is omitted so nothing appears twice.
+            if (!sideActions) {
+                Pill {
+                    extra?.invoke(this)
+                    BarIcon(Icons.Filled.Share, "هم‌رسانی", onShare)
+                    BarIcon(
+                        if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
+                        onToggleSave,
+                        tint = if (isSaved) colors.error else null,
+                    )
+                    val key = poem.poetKey
+                    if (key != null && onOpenPoet != null) {
+                        BarItem(onClick = { onOpenPoet(key) }, description = poem.poetName) {
+                            PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
+                        }
                     }
                 }
             }

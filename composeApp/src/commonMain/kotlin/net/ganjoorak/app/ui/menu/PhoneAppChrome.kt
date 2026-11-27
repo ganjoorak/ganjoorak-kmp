@@ -42,22 +42,22 @@ import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.util.toPersianDigits
 
 /** Height of the floating destination pill (Google Photos style). */
-val FloatingNavPillHeight = 64.dp
+val FloatingNavPillHeight = 56.dp
 
 /** Gap between the pill row and the bottom edge, above the system gesture bar. */
-val FloatingNavBottomMargin = 16.dp
+val FloatingNavBottomMargin = 12.dp
 
 /** Side margin of the floating pill row. */
-val FloatingNavSideMargin = 16.dp
+val FloatingNavSideMargin = 12.dp
 
 /** Diameter of the separate circular search button next to the pill. */
-val FloatingNavSearchSize = 56.dp
+val FloatingNavSearchSize = 48.dp
 
 /** Gap between the pill and the search circle. */
 val FloatingNavSearchGap = 8.dp
 
 /** Inner padding of the pill around its destinations. */
-private val PillInnerPadding = 8.dp
+private val PillInnerPadding = 6.dp
 
 /** Height of one destination inside the pill (pill height minus inner padding). */
 private val NavItemHeight = FloatingNavPillHeight - PillInnerPadding * 2
@@ -202,9 +202,9 @@ private fun NavDestination(
             Row(
                 Modifier
                     .height(NavItemHeight)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(selectedIcon, contentDescription = null)
                 Text(

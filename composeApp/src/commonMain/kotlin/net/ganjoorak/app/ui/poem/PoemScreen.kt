@@ -171,6 +171,16 @@ fun PoemScreen(
                 }
             },
             onOpenPoet = onOpenPoet,
+            // Poet / heart / share live in the vertical column on the left
+            // edge instead of the second pill of the bottom bar.
+            sideActions = true,
+        )
+        PoemSideActionsColumn(
+            poem = poem,
+            isSaved = poem != null && saved.any { it.ref == poem.ref },
+            onToggleSave = { poem?.let(graph.library::toggleSaved) },
+            onShare = { shareLines = null; sharing = true },
+            onOpenPoet = onOpenPoet,
         )
         val currentSelection = selection
         if (currentSelection != null && poem != null) {
