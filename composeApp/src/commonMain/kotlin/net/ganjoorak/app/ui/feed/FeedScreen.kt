@@ -34,12 +34,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,7 +66,6 @@ import net.ganjoorak.app.data.local.FeedMode
 import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.ErrorBox
 import net.ganjoorak.app.ui.components.LoadingBox
-import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.components.TopicChip
 import net.ganjoorak.app.ui.components.tabSwipe
@@ -127,19 +124,10 @@ fun FeedScreen(
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.statusBars)) {
         Column(Modifier.fillMaxSize()) {
-        // The overflow sheet's entry point on the home screen: the destinations
-        // moved to the floating pill nav, and the menu chip left the poem pill,
-        // so the sheet opens from this button instead.
+        // The mode switch sits centred at the top; the menu sheet opens from
+        // the menu chip in the poem pill again (as before Phase A).
         Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                eyebrow()
-            }
-            IconButton(
-                onClick = LocalAppActions.current.openMenu,
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
-            ) {
-                Icon(Icons.Filled.Menu, contentDescription = "منو")
-            }
+            eyebrow()
         }
         val modes = FeedMode.entries
         val modeIndex = modes.indexOf(settings.feedMode)

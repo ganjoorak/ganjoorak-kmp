@@ -2,11 +2,12 @@ package net.ganjoorak.app.ui.share
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,17 +17,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -43,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import net.ganjoorak.app.AppGraph
@@ -61,6 +71,15 @@ private val SHARE_FONTS = listOf(PoemFont.Vazirmatn, PoemFont.Samim, PoemFont.Ga
 
 private enum class ShareAction { Link, Text, Image }
 
+/**
+ * The poem share screen, redesigned from scratch (2026-11-27): the rendered
+ * card is the hero at the top, style choices live in one tonal card of
+ * segmented controls, the share action is the single strong fill, and verse
+ * selection is a numbered list in the verse's own font. Everything it must
+ * do is unchanged — line selection, theme / font / layout, image export,
+ * text copy/share, link — only the layout is new. The sheet container
+ * itself stays a [ModalBottomSheet], as before.
+ */
 @Composable
 fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null) {
     val settings by AppGraph.instance.settings.settings.collectAsState()
@@ -93,46 +112,119 @@ fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
             item(key = "head") {
-                Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-                    Text("اشتراک شعر", style = MaterialTheme.typography.titleLarge)
-                    Text(poem.title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("اشتراک شعر", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            "${poem.title} • ${poem.poetName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "بستن")
+                    }
                 }
             }
             item(key = "preview") {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .aspectRatio(SHARE_IMAGE_WIDTH / SHARE_IMAGE_HEIGHT.toFloat())
-                        .clip(MaterialTheme.shapes.large)
-                        .background(MaterialTheme.colorScheme.surfaceContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (image != null) {
-                        Image(image, contentDescription = "پیش‌نمایش تصویر اشتراک شعر", modifier = Modifier.fillMaxWidth())
-                    } else {
-                        Text("مصرعی انتخاب نشده", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.padding(top = 12.dp)) {
+                    Text(
+                        "پیش‌نمایش",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 420.dp)
+                            .aspectRatio(SHARE_IMAGE_WIDTH / SHARE_IMAGE_HEIGHT.toFloat())
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .background(MaterialTheme.colorScheme.surfaceContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (image != null) {
+                            Image(image, contentDescription = "پیش‌نمایش تصویر اشتراک شعر", modifier = Modifier.fillMaxWidth())
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    Icons.Filled.Image,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                                Text("مصرعی انتخاب نشده", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
-            item(key = "options") {
-                Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OptionRow("قالب", ShareTheme.entries, theme, { it.label }) { theme = it }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
-                        Text("قلم", style = MaterialTheme.typography.labelLarge, modifier = Modifier.align(Alignment.CenterVertically))
-                        SHARE_FONTS.forEach { option ->
-                            FilterChip(
-                                selected = option == font,
-                                onClick = { font = option },
-                                label = { Text(fontLabel(option), style = TextStyle(fontFamily = families.getValue(option))) },
-                            )
+            item(key = "style") {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("قالب", style = MaterialTheme.typography.labelLarge)
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                ShareTheme.entries.forEachIndexed { index, option ->
+                                    SegmentedButton(
+                                        selected = option == theme,
+                                        onClick = { theme = option },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ShareTheme.entries.size),
+                                        label = { Text(option.label) },
+                                    )
+                                }
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("چیدمان", style = MaterialTheme.typography.labelLarge)
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                ShareLayout.entries.forEachIndexed { index, option ->
+                                    SegmentedButton(
+                                        selected = option == layout,
+                                        onClick = { layout = option },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = ShareLayout.entries.size),
+                                        label = { Text(option.label) },
+                                    )
+                                }
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("قلم", style = MaterialTheme.typography.labelLarge)
+                            Row(
+                                Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SHARE_FONTS.forEach { option ->
+                                    FilterChip(
+                                        selected = option == font,
+                                        onClick = { font = option },
+                                        label = { Text(fontLabel(option), style = TextStyle(fontFamily = families.getValue(option))) },
+                                    )
+                                }
+                            }
                         }
                     }
-                    OptionRow("چیدمان", ShareLayout.entries, layout, { it.label }) { layout = it }
                 }
             }
             item(key = "actions") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val png = image?.let(::encodePng) ?: return@Button
+                            message = shareImage(png, "ganjoorak-${poem.id}.png")
+                            done = ShareAction.Image
+                        },
+                        enabled = image != null,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        ActionLabel(done == ShareAction.Image, Icons.Filled.Image, "اشتراک تصویر")
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = {
                             copyText(poem.shareUrl)
@@ -146,17 +238,6 @@ fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null
                         }, enabled = selectedLines.isNotEmpty(), modifier = Modifier.weight(1f)) {
                             ActionLabel(done == ShareAction.Text, Icons.Filled.ContentCopy, "کپی متن")
                         }
-                    }
-                    FilledTonalButton(
-                        onClick = {
-                            val png = image?.let(::encodePng) ?: return@FilledTonalButton
-                            message = shareImage(png, "ganjoorak-${poem.id}.png")
-                            done = ShareAction.Image
-                        },
-                        enabled = image != null,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        ActionLabel(done == ShareAction.Image, Icons.Filled.Image, "اشتراک تصویر")
                     }
                     message?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -178,32 +259,57 @@ fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null
             }
             itemsIndexed(lines, key = { index, _ -> "l$index" }) { index, line ->
                 val isSelected = index in selected
+                val colors = MaterialTheme.colorScheme
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 2.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-                        )
+                        .padding(vertical = 3.dp)
+                        .clip(MaterialTheme.shapes.large)
+                        .background(if (isSelected) colors.primaryContainer else colors.surfaceContainer)
                         .clickable { selected = if (isSelected) selected - index else selected + index }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(line, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Start, modifier = Modifier.weight(1f))
-                    if (isSelected) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Box(
+                        Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) colors.primary else colors.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            (index + 1).toPersianDigits(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) colors.onPrimary else colors.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        line,
+                        style = TextStyle(fontFamily = families.getValue(font)),
+                        color = if (isSelected) colors.onPrimaryContainer else colors.onSurface,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.weight(1f).padding(start = 12.dp),
+                    )
+                    if (isSelected) {
+                        Box(
+                            Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(colors.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(14.dp), tint = colors.onPrimary)
+                        }
+                    } else {
+                        Box(
+                            Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, colors.outline, CircleShape),
+                        )
+                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun <T> OptionRow(title: String, options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
-        Text(title, style = MaterialTheme.typography.labelLarge, modifier = Modifier.align(Alignment.CenterVertically))
-        options.forEach { option ->
-            FilterChip(selected = option == selected, onClick = { onSelect(option) }, label = { Text(label(option)) })
         }
     }
 }

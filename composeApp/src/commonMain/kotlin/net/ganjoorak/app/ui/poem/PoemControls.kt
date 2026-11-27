@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.data.Poem
 import net.ganjoorak.app.platform.usesSideNavigation
+import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 
@@ -180,12 +182,11 @@ private fun SideActionButton(onClick: () -> Unit, description: String, content: 
 }
 
 /**
- * Phone controls: the play capsule pill, centred at the bottom. The
- * share / like / poet actions live in the vertical [PoemSideActionsColumn]
- * on the poem screen ([sideActions]); on the feed they stay in a second
- * pill next to the play capsule. Destinations live in the floating pill
- * nav; the menu chip is gone from this bar, the overflow sheet opens from
- * the Feed top row instead.
+ * Phone controls, matching tag v0.1.2: a compact bar of groups — «menu»,
+ * «play» (a plain play/pause button; long-press opens the recitation list
+ * in the bottom player) and, unless [sideActions] moves them to the vertical
+ * column, «share, like, poet», right to left. The menu chip stays visible
+ * even when there is no poem (empty or «دنبال‌شده‌ها» feed).
  */
 @Composable
 private fun BoxScope.PhonePoemFloatingControls(
@@ -200,6 +201,7 @@ private fun BoxScope.PhonePoemFloatingControls(
     extra: (@Composable RowScope.() -> Unit)?,
     sideActions: Boolean = false,
 ) {
+    val app = LocalAppActions.current
     val colors = MaterialTheme.colorScheme
     Row(
         Modifier
@@ -210,6 +212,9 @@ private fun BoxScope.PhonePoemFloatingControls(
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The menu chip is back in the pill (as before Phase A) — it is the
+        // only entry to the menu sheet, and stays visible with no poem.
+        Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
         if (poem != null) {
             if (poem.recitations.isNotEmpty()) {
                 Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
