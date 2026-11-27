@@ -164,8 +164,9 @@ private fun PoetHero(
     val poet = detail.poet
     val colors = MaterialTheme.colorScheme
     // Second colour source (plan §2.2): the portrait's dominant colour, blended
-    // lightly over the surface and contrast-gated. Null until the portrait
-    // loads, on desktop, or when the gate fails — the hero stays neutral then.
+    // lightly over the surface and contrast- and hue-gated (no green/olive).
+    // Null until the portrait loads, on desktop, or when a gate fails — the
+    // hero stays neutral then.
     var portraitImage by remember(poet.imageUrl) { mutableStateOf<Image?>(null) }
     val portraitContainer = remember(portraitImage, colors) {
         portraitImage?.let { dominantColor(it) }?.let { portraitContainerColor(it, colors) }
