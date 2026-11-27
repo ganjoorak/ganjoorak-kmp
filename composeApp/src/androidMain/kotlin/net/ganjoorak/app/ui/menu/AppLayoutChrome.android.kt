@@ -16,6 +16,7 @@ actual fun AppLayoutChrome(
         current = current,
         favoritesCount = favoritesCount,
         onSelect = onSelect,
+        onOpenSearch = onOpenSearch,
         navContent = navContent,
         miniPlayer = miniPlayer,
     )

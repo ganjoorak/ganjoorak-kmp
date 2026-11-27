@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 /**
  * Platform shell around the back stack and mini-player.
  *
- * Android always uses [PhoneAppChrome] (the v0.1.2 chip-style nav, no destination bar).
+ * Android always uses [PhoneAppChrome] (the floating pill nav).
  * Desktop uses the floating side rail, unless `GANJOORAK_NAV=bar` forces the phone chrome.
  * The rail lives only in desktopMain so desktop changes cannot leak into the Android APK.
  */

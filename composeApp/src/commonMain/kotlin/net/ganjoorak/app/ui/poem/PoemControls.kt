@@ -106,7 +106,7 @@ fun BoxScope.PoemFloatingControls(
  * Phone controls, matching tag v0.1.2: a compact bar of groups — «play» (a
  * plain play/pause button; long-press opens the recitation list in the
  * bottom player) and «share, like, poet», right to left. Destinations live
- * in the ShortNavigationBar now, so the menu chip is gone from this bar;
+ * in the floating pill nav now, so the menu chip is gone from this bar;
  * the overflow sheet opens from the Feed top row instead.
  */
 @Composable

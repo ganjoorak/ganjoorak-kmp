@@ -43,7 +43,7 @@ import net.ganjoorak.app.ui.menu.AppMenu
 import net.ganjoorak.app.ui.menu.FeedPoetsSheet
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.menu.MenuTarget
-import net.ganjoorak.app.ui.menu.ShortNavBarHeight
+import net.ganjoorak.app.ui.menu.floatingNavBottomReserve
 import net.ganjoorak.app.ui.navigation.PredictiveBackTransitions
 import net.ganjoorak.app.ui.player.LocalRecitationListHost
 import net.ganjoorak.app.ui.player.MiniPlayer
@@ -148,7 +148,7 @@ private fun AppShell() {
         LocalPoemChromeHost provides poemChromeHost,
         LocalRecitationListHost provides recitationListHost,
         LocalPersistentNavPadding provides PaddingValues(
-            bottom = if (usesSideNavigation) 0.dp else ShortNavBarHeight,
+            bottom = if (usesSideNavigation) 0.dp else floatingNavBottomReserve(),
         ),
     ) {
         AppLayoutChrome(
@@ -159,9 +159,8 @@ private fun AppShell() {
             onOpenSearch = openSearch,
             navContent = { AppNavDisplay(backStack, onEditFollowing = { pickingPoets = true }) },
             miniPlayer = {
-                // No navigationBars padding here: the ShortNavigationBar below
-                // consumes the system-bars insets itself (its default
-                // windowInsets), so padding the player too would double it.
+                // No navigationBars padding here: the floating pill row below
+                // consumes the system-bars insets itself, so padding the player too would double it.
                 MiniPlayer(
                     graph.player,
                     onOpenPoem = { backStack.open(it.route()) },

@@ -128,7 +128,7 @@ fun FeedScreen(
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.statusBars)) {
         Column(Modifier.fillMaxSize()) {
         // The overflow sheet's entry point on the home screen: the destinations
-        // moved to the ShortNavigationBar, and the menu chip left the poem pill,
+        // moved to the floating pill nav, and the menu chip left the poem pill,
         // so the sheet opens from this button instead.
         Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
