@@ -32,6 +32,7 @@ import androidx.navigationevent.NavigationEventTransitionState
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.ganjoorak.app.ui.theme.MotionTokens
 
 /**
  * Predictive-back and navigation transitions for [androidx.navigation3.ui.NavDisplay].
@@ -73,10 +74,11 @@ object PredictiveBackTransitions {
         verticalPull = 0f
         return (
             slideInHorizontally(slideSpring) { it / 3 } +
-                fadeIn(tween(220, delayMillis = 40))
+                // The 40ms fade delay the old tween carried has no spring equivalent; dropped.
+                fadeIn(MotionTokens.fast())
         ) togetherWith (
-            scaleOut(tween(POP_MS, easing = FastOutSlowInEasing), targetScale = 0.92f) +
-                fadeOut(tween(200))
+            scaleOut(MotionTokens.spatial(), targetScale = 0.92f) +
+                fadeOut(MotionTokens.fast())
         )
     }
 
@@ -91,11 +93,11 @@ object PredictiveBackTransitions {
         val enter = if (forward) -1 else 1
         val exit = if (forward) 1 else -1
         return (
-            fadeIn(tween(POP_MS, easing = FastOutSlowInEasing)) +
-                slideInHorizontally(tween(POP_MS, easing = FastOutSlowInEasing)) { enter * it / 8 }
+            fadeIn(MotionTokens.fast()) +
+                slideInHorizontally(MotionTokens.spatial()) { enter * it / 8 }
         ) togetherWith (
-            fadeOut(tween(POP_MS, easing = FastOutSlowInEasing)) +
-                slideOutHorizontally(tween(POP_MS, easing = FastOutSlowInEasing)) { exit * it / 8 }
+            fadeOut(MotionTokens.fast()) +
+                slideOutHorizontally(MotionTokens.spatial()) { exit * it / 8 }
         )
     }
 
@@ -103,18 +105,24 @@ object PredictiveBackTransitions {
         underlay = Underlay.Pop
         return ContentTransform(
             targetContentEnter =
-                scaleIn(tween(POP_MS, easing = FastOutSlowInEasing), initialScale = UNDERLAY_SCALE) +
-                    slideInHorizontally(tween(POP_MS, easing = FastOutSlowInEasing)) {
+                scaleIn(MotionTokens.spatial(), initialScale = UNDERLAY_SCALE) +
+                    slideInHorizontally(MotionTokens.spatial()) {
                         -(it * UNDERLAY_SHIFT).toInt()
                     },
             initialContentExit =
                 slideOutHorizontally(slideSpring) { it } +
-                    scaleOut(tween(POP_MS), targetScale = 0.95f),
+                    scaleOut(MotionTokens.spatial(), targetScale = 0.95f),
             targetContentZIndex = -1f,
             sizeTransform = null,
         )
     }
 
+    /**
+     * Predictive back. The tween()s here deliberately stay: their easings
+     * (underlayScaleEasing, predictiveSlideEasing, predictiveScaleEasing, predictiveFadeEasing)
+     * follow the live gesture — they read releasedAt/verticalPull every frame — and no spring
+     * spec can express that. Springing them would break the finger-following release.
+     */
     fun predictivePop(@NavigationEvent.SwipeEdge swipeEdge: Int): ContentTransform {
         underlay = Underlay.Predictive
         val direction = if (swipeEdge == NavigationEvent.EDGE_RIGHT) -1 else 1
@@ -170,6 +178,8 @@ object PredictiveBackTransitions {
     fun <T : Any> entryDecorator(): NavEntryDecorator<T> =
         NavEntryDecorator { entry ->
             val scope = LocalNavAnimatedContentScope.current
+            // Stays tween: both easings read the live verticalPull gesture value every frame;
+            // a spring spec cannot express that.
             val pull by scope.transition.animateFloat(
                 transitionSpec = {
                     if (initialState == EnterExitState.PreEnter) {
@@ -185,8 +195,9 @@ object PredictiveBackTransitions {
             val corner by scope.transition.animateFloat(
                 transitionSpec = {
                     when (underlay) {
+                        // Predictive branch stays tween: underlayScaleEasing follows the live gesture.
                         Underlay.Predictive -> tween(PREDICTIVE_MS, easing = underlayScaleEasing)
-                        else -> tween(POP_MS, easing = FastOutSlowInEasing)
+                        else -> MotionTokens.spatial<Float>()
                     }
                 },
                 label = "underlayCorner",

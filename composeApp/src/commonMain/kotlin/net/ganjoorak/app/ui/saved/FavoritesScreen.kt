@@ -1,8 +1,6 @@
 package net.ganjoorak.app.ui.saved
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -51,6 +49,7 @@ import net.ganjoorak.app.ui.components.MessageBox
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.components.SectionLabel
 import net.ganjoorak.app.ui.components.tabSwipe
+import net.ganjoorak.app.ui.theme.MotionTokens
 import net.ganjoorak.app.util.toPersianDigits
 
 enum class FavoritesSection(val label: String) {
@@ -169,15 +168,15 @@ fun FavoritesScreen(
                     val from = initialState.first.ordinal * PoemLibraryTab.entries.size + initialState.second.ordinal
                     val to = targetState.first.ordinal * PoemLibraryTab.entries.size + targetState.second.ordinal
                     if (to > from) {
-                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
-                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it }) togetherWith
-                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
-                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it })
+                        (fadeIn(MotionTokens.fast()) +
+                            slideInHorizontally(MotionTokens.fast()) { -it }) togetherWith
+                            (fadeOut(MotionTokens.fast()) +
+                                slideOutHorizontally(MotionTokens.fast()) { it })
                     } else {
-                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
-                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it }) togetherWith
-                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
-                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it })
+                        (fadeIn(MotionTokens.fast()) +
+                            slideInHorizontally(MotionTokens.fast()) { it }) togetherWith
+                            (fadeOut(MotionTokens.fast()) +
+                                slideOutHorizontally(MotionTokens.fast()) { -it })
                     }
                 },
             ) { (pane, tab) ->

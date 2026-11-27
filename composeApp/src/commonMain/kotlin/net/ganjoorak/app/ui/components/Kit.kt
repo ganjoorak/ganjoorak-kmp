@@ -1,7 +1,6 @@
 package net.ganjoorak.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import net.ganjoorak.app.data.account.StoryPerson
+import net.ganjoorak.app.ui.theme.MotionTokens
 import net.ganjoorak.app.util.toPersianDigits
 
 /** What every screen can ask of the shell: search and, when present, the stories viewer. */
@@ -58,7 +58,7 @@ fun FloatingIconButton(
         onClick = onClick,
         modifier = modifier.size(44.dp),
         shape = CircleShape,
-        color = if (active) colors.primary else colors.surfaceContainer.copy(alpha = 0.92f),
+        color = if (active) colors.primary else colors.surfaceContainer,
         contentColor = if (active) colors.onPrimary else colors.onSurface,
         border = BorderStroke(1.dp, colors.outlineVariant),
         shadowElevation = 2.dp,
@@ -88,8 +88,8 @@ fun <T> SegmentedSwitch(
     ) {
         options.forEach { option ->
             val active = option == selected
-            val background by animateColorAsState(if (active) colors.primary else Color.Transparent, tween(240))
-            val content by animateColorAsState(if (active) colors.onPrimary else colors.onSurfaceVariant, tween(240))
+            val background by animateColorAsState(if (active) colors.primary else Color.Transparent, MotionTokens.fast())
+            val content by animateColorAsState(if (active) colors.onPrimary else colors.onSurfaceVariant, MotionTokens.fast())
             Box(
                 Modifier
                     .height(30.dp)
@@ -110,8 +110,8 @@ fun <T> SegmentedSwitch(
 @Composable
 fun TopicChip(label: String, active: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val background by animateColorAsState(if (active) colors.primary else Color.Transparent, tween(200))
-    val content by animateColorAsState(if (active) colors.onPrimary else colors.onSurface.copy(alpha = 0.8f), tween(200))
+    val background by animateColorAsState(if (active) colors.primary else Color.Transparent, MotionTokens.fast())
+    val content by animateColorAsState(if (active) colors.onPrimary else colors.onSurfaceVariant, MotionTokens.fast())
     Box(
         modifier
             .height(32.dp)
@@ -134,7 +134,7 @@ fun BorderedCard(
     content: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = MaterialTheme.shapes.large
+    val shape = MaterialTheme.shapes.extraLarge
     val base = modifier
         .clip(shape)
         .border(1.dp, colors.outlineVariant, shape)
@@ -204,8 +204,8 @@ fun <T> AppTabs(
     ) {
         options.forEach { option ->
             val active = option == selected
-            val background by animateColorAsState(if (active) colors.background else Color.Transparent, tween(220))
-            val content by animateColorAsState(if (active) colors.onSurface else colors.onSurfaceVariant, tween(220))
+            val background by animateColorAsState(if (active) colors.surfaceContainerLowest else Color.Transparent, MotionTokens.fast())
+            val content by animateColorAsState(if (active) colors.onSurface else colors.onSurfaceVariant, MotionTokens.fast())
             Row(
                 Modifier
                     .height(34.dp)

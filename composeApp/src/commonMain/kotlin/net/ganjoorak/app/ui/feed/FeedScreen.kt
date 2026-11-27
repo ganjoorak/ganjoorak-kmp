@@ -1,8 +1,6 @@
 package net.ganjoorak.app.ui.feed
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -80,6 +78,7 @@ import net.ganjoorak.app.ui.poem.poemBlocks
 import net.ganjoorak.app.ui.poem.sideBySide
 import net.ganjoorak.app.ui.share.ShareSheet
 import net.ganjoorak.app.ui.theme.LocalPoemStyle
+import net.ganjoorak.app.ui.theme.MotionTokens
 
 /**
  * The home feed, as on the site: one poem per page, swipe up for the next. Above each title sit the
@@ -147,15 +146,15 @@ fun FeedScreen(
                     val from = initialState.source.mode.ordinal
                     val to = targetState.source.mode.ordinal
                     if (to > from) {
-                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
-                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it }) togetherWith
-                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
-                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it })
+                        (fadeIn(MotionTokens.fast()) +
+                            slideInHorizontally(MotionTokens.fast()) { -it }) togetherWith
+                            (fadeOut(MotionTokens.fast()) +
+                                slideOutHorizontally(MotionTokens.fast()) { it })
                     } else {
-                        (fadeIn(tween(300, easing = FastOutSlowInEasing)) +
-                            slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { it }) togetherWith
-                            (fadeOut(tween(300, easing = FastOutSlowInEasing)) +
-                                slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { -it })
+                        (fadeIn(MotionTokens.fast()) +
+                            slideInHorizontally(MotionTokens.fast()) { it }) togetherWith
+                            (fadeOut(MotionTokens.fast()) +
+                                slideOutHorizontally(MotionTokens.fast()) { -it })
                     }
                 },
             ) { pane ->
