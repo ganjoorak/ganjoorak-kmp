@@ -26,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.Image
 import coil3.compose.AsyncImage
 
 @Composable
@@ -77,7 +78,14 @@ fun ErrorBox(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier
 
 /** Circular poet portrait with the name's initial underneath as a fallback. */
 @Composable
-fun PoetAvatar(name: String, imageUrl: String?, size: Dp, modifier: Modifier = Modifier) {
+fun PoetAvatar(
+    name: String,
+    imageUrl: String?,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    /** Receives the loaded image (for portrait-colour extraction); null when it fails. */
+    onImageLoaded: ((Image) -> Unit)? = null,
+) {
     Box(
         modifier
             .size(size)
@@ -95,6 +103,7 @@ fun PoetAvatar(name: String, imageUrl: String?, size: Dp, modifier: Modifier = M
                 model = imageUrl,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
+                onSuccess = { state -> onImageLoaded?.invoke(state.result.image) },
                 modifier = Modifier.fillMaxSize(),
             )
         }

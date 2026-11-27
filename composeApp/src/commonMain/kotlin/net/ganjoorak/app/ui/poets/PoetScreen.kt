@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import coil3.Image
+import net.ganjoorak.app.ui.theme.dominantColor
+import net.ganjoorak.app.ui.theme.portraitContainerColor
 import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.CategoryRef
 import net.ganjoorak.app.data.GanjoorException
@@ -160,10 +163,17 @@ private fun PoetHero(
 ) {
     val poet = detail.poet
     val colors = MaterialTheme.colorScheme
+    // Second colour source (plan §2.2): the portrait's dominant colour, blended
+    // lightly over the surface and contrast-gated. Null until the portrait
+    // loads, on desktop, or when the gate fails — the hero stays neutral then.
+    var portraitImage by remember(poet.imageUrl) { mutableStateOf<Image?>(null) }
+    val portraitContainer = remember(portraitImage, colors) {
+        portraitImage?.let { dominantColor(it) }?.let { portraitContainerColor(it, colors) }
+    }
     BorderedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                PoetAvatar(poet.name, poet.imageUrl, 88.dp)
+                PoetAvatar(poet.name, poet.imageUrl, 88.dp, onImageLoaded = { portraitImage = it })
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(poet.nickname ?: poet.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     poet.nickname?.takeIf { it != poet.name }?.let {
@@ -183,7 +193,7 @@ private fun PoetHero(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     stats.forEach { (label, value) ->
                         Column(
-                            Modifier.weight(1f).clip(MaterialTheme.shapes.medium).background(colors.surfaceContainerHigh).padding(vertical = 8.dp),
+                            Modifier.weight(1f).clip(MaterialTheme.shapes.medium).background(portraitContainer ?: colors.surfaceContainerHigh).padding(vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
@@ -196,7 +206,10 @@ private fun PoetHero(
                 Button(
                     onClick = onToggleFollow,
                     colors = if (followed) {
-                        ButtonDefaults.buttonColors(containerColor = colors.secondaryContainer, contentColor = colors.onSecondaryContainer)
+                        ButtonDefaults.buttonColors(
+                            containerColor = portraitContainer ?: colors.secondaryContainer,
+                            contentColor = colors.onSecondaryContainer,
+                        )
                     } else {
                         ButtonDefaults.buttonColors()
                     },
