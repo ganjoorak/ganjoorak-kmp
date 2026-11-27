@@ -159,18 +159,18 @@ private val PaperColors = lightColorScheme(
     onErrorContainer = Color(0xFF5C1F0E),
 )
 
-// Expressive shape tokens (material3 1.9.0): the old 4/6/10/14/20dp set, completed
-// with largeIncreased 20dp, extraLarge 28dp, extraLargeIncreased 32dp and
-// extraExtraLarge 48dp. Only corners change; sizes and padding stay put.
+// Expressive shape scale (material3 1.9.0): only the five classic slots are
+// settable — the public Shapes constructor takes extraSmall/small/medium/
+// large/extraLarge; largeIncreased/extraLargeIncreased/extraExtraLarge exist
+// only as internal defaults (20/32/48dp). extraLarge is 28dp (the
+// expressive value) instead of the old 20dp. Only corners change; sizes and
+// padding stay put.
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(6.dp),
     medium = RoundedCornerShape(10.dp),
     large = RoundedCornerShape(14.dp),
-    largeIncreased = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(28.dp),
-    extraLargeIncreased = RoundedCornerShape(32.dp),
-    extraExtraLarge = RoundedCornerShape(48.dp),
 )
 
 /** How poem text is rendered; derived from [AppSettings]. */
@@ -234,24 +234,10 @@ private fun Typography.withFont(font: FontFamily) = Typography(
     labelLarge = labelLarge.copy(fontFamily = font),
     labelMedium = labelMedium.copy(fontFamily = font),
     labelSmall = labelSmall.copy(fontFamily = font),
-    // Emphasized styles are separate fields; without the UI font they would
-    // render Persian text in the platform default (no Vazirmatn glyphs).
-    displayLargeEmphasized = displayLargeEmphasized.copy(fontFamily = font),
-    displayMediumEmphasized = displayMediumEmphasized.copy(fontFamily = font),
-    displaySmallEmphasized = displaySmallEmphasized.copy(fontFamily = font),
-    headlineLargeEmphasized = headlineLargeEmphasized.copy(fontFamily = font),
-    headlineMediumEmphasized = headlineMediumEmphasized.copy(fontFamily = font),
-    headlineSmallEmphasized = headlineSmallEmphasized.copy(fontFamily = font),
-    titleLargeEmphasized = titleLargeEmphasized.copy(fontFamily = font),
-    titleMediumEmphasized = titleMediumEmphasized.copy(fontFamily = font),
-    titleSmallEmphasized = titleSmallEmphasized.copy(fontFamily = font),
-    bodyLargeEmphasized = bodyLargeEmphasized.copy(fontFamily = font),
-    bodyMediumEmphasized = bodyMediumEmphasized.copy(fontFamily = font),
-    bodySmallEmphasized = bodySmallEmphasized.copy(fontFamily = font),
-    labelLargeEmphasized = labelLargeEmphasized.copy(fontFamily = font),
-    labelMediumEmphasized = labelMediumEmphasized.copy(fontFamily = font),
-    labelSmallEmphasized = labelSmallEmphasized.copy(fontFamily = font),
 )
+// Note: the *Emphasized styles are internal in material3 1.9.0 (constructor
+// and accessors), so they cannot be re-fonted here or read anywhere —
+// FontWeight.Bold stays the emphasis mechanism (plan §2.5 fallback).
 
 @Composable
 fun GanjoorakTheme(settings: AppSettings, content: @Composable () -> Unit) {
