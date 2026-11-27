@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,11 +52,11 @@ fun StoriesRow(
             itemsIndexed(people, key = { _, person -> person.user.username }) { index, person ->
                 val unseen = isUnseen(person)
                 val accent = parseAccent(person.user.accent) ?: MaterialTheme.colorScheme.primary
-                val ring = if (unseen) accent else muted.copy(alpha = 0.4f)
+                val ring = if (unseen) accent else MaterialTheme.colorScheme.outlineVariant
                 Column(
                     Modifier
                         .width(72.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(MaterialTheme.shapes.medium)
                         .clickable { onOpen(index) }
                         .padding(vertical = 4.dp, horizontal = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

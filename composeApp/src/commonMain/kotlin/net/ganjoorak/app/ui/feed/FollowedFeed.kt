@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +35,7 @@ import net.ganjoorak.app.data.account.formatStoryTime
 import net.ganjoorak.app.data.account.poemRef
 import net.ganjoorak.app.ui.account.FollowUserButton
 import net.ganjoorak.app.ui.components.LocalAppActions
+import net.ganjoorak.app.ui.components.SectionLabel
 import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
 import net.ganjoorak.app.ui.poem.PoemControlsHeight
@@ -86,6 +86,13 @@ fun FollowedFeed(
             person.quotes.map { FollowedPost(person, it) }
         }.sortedByDescending { it.quote.createdAt }
     }
+    // Actionable (unseen) posts stay as contained cards under one heading;
+    // read posts become plain rows under theirs. Same posts, no rows added or
+    // removed; a quote is unseen while its id is past the last seen id for
+    // that person — the same rule the stories row uses.
+    val (unseenPosts, readPosts) = remember(posts, storyState.seen) {
+        posts.partition { it.quote.id > (storyState.seen[it.person.user.username] ?: 0L) }
+    }
 
     when {
         session.isLoading && session.user == null -> {
@@ -135,8 +142,19 @@ fun FollowedFeed(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    else -> items(posts, key = { "${it.person.user.username}-${it.quote.id}" }) { post ->
-                        FollowedPostCard(post, onOpenPoem)
+                    else -> {
+                        if (unseenPosts.isNotEmpty()) {
+                            item(key = "heading-new") { SectionLabel("تازه‌ها") }
+                            items(unseenPosts, key = { "${it.person.user.username}-${it.quote.id}" }) { post ->
+                                FollowedPostCard(post, onOpenPoem)
+                            }
+                        }
+                        if (readPosts.isNotEmpty()) {
+                            item(key = "heading-read") { SectionLabel("خوانده‌شده‌ها") }
+                            items(readPosts, key = { "${it.person.user.username}-${it.quote.id}" }) { post ->
+                                FollowedPostRow(post, onOpenPoem)
+                            }
+                        }
                     }
                 }
             }
@@ -147,61 +165,78 @@ fun FollowedFeed(
 @Composable
 private fun FollowedPostCard(post: FollowedPost, onOpenPoem: (PoemRef) -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val user = post.person.user
-    val quote = post.quote
     Surface(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .widthIn(max = 560.dp)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         color = colors.surfaceContainerLow,
         tonalElevation = 1.dp,
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ProfileAvatar(
-                    username = user.username,
-                    displayName = user.displayName.ifBlank { user.username },
-                    avatar = user.avatar,
-                    size = 40.dp,
-                )
-                Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                    Text(
-                        user.displayName.ifBlank { user.username },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                    )
-                    Text(
-                        formatStoryTime(quote.createdAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                }
-                FollowUserButton(username = user.username, displayName = user.displayName.ifBlank { user.username })
-            }
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .then(
-                        quote.poemRef()?.let { ref -> Modifier.clickable { onOpenPoem(ref) } } ?: Modifier,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                quote.lines.forEach { line ->
-                    Text(line, style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                }
-            }
-            if (quote.poetName.isNotBlank() || quote.poemTitle.isNotBlank()) {
+        FollowedPostContent(post, onOpenPoem, Modifier.padding(16.dp))
+    }
+}
+
+/** A read post: the same content as the card, but a plain row, no container. */
+@Composable
+private fun FollowedPostRow(post: FollowedPost, onOpenPoem: (PoemRef) -> Unit) {
+    FollowedPostContent(
+        post,
+        onOpenPoem,
+        Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+/** The post itself, shared by the contained card and the plain row. */
+@Composable
+private fun FollowedPostContent(post: FollowedPost, onOpenPoem: (PoemRef) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val user = post.person.user
+    val quote = post.quote
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ProfileAvatar(
+                username = user.username,
+                displayName = user.displayName.ifBlank { user.username },
+                avatar = user.avatar,
+                size = 40.dp,
+            )
+            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 Text(
-                    listOf(quote.poetName, quote.poemTitle).filter { it.isNotBlank() }.joinToString(" · "),
-                    style = MaterialTheme.typography.labelMedium,
+                    user.displayName.ifBlank { user.username },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+                Text(
+                    formatStoryTime(quote.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
                     color = colors.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
             }
+            FollowUserButton(username = user.username, displayName = user.displayName.ifBlank { user.username })
+        }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .then(
+                    quote.poemRef()?.let { ref -> Modifier.clickable { onOpenPoem(ref) } } ?: Modifier,
+                ),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            quote.lines.forEach { line ->
+                Text(line, style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+        }
+        if (quote.poetName.isNotBlank() || quote.poemTitle.isNotBlank()) {
+            Text(
+                listOf(quote.poetName, quote.poemTitle).filter { it.isNotBlank() }.joinToString(" · "),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
         }
     }
 }

@@ -217,8 +217,8 @@ fun BarIcon(icon: ImageVector, description: String, onClick: () -> Unit, tint: C
 @Composable
 private fun PlayCapsule(isPlaying: Boolean, onClick: () -> Unit, onLongClick: () -> Unit = {}) {
     val colors = MaterialTheme.colorScheme
-    val container by animateColorAsState(if (isPlaying) colors.primary else colors.primaryContainer)
-    val content by animateColorAsState(if (isPlaying) colors.onPrimary else colors.onPrimaryContainer)
+    val container by animateColorAsState(colors.primary)
+    val content by animateColorAsState(colors.onPrimary)
     Box(
         Modifier
             .size(40.dp)

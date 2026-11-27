@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,7 +88,7 @@ fun PoemHeader(
                 style = MaterialTheme.typography.labelLarge,
                 color = muted,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(MaterialTheme.shapes.small)
                     .then(if (poetClick != null) Modifier.clickable(onClick = poetClick) else Modifier)
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             )
@@ -100,7 +99,7 @@ fun PoemHeader(
                     style = MaterialTheme.typography.labelMedium,
                     color = muted,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(MaterialTheme.shapes.small)
                         .then(if (onCategoryClick != null && crumb.id > 0) Modifier.clickable { onCategoryClick(crumb) } else Modifier)
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                 )
@@ -243,18 +242,18 @@ private fun VerseText(
         verse.text,
         style = style.copy(
             color = when {
-                active -> colors.primary
-                dimmed -> style.color.copy(alpha = 0.55f)
+                active -> colors.onPrimaryContainer
+                dimmed -> colors.onSurfaceVariant
                 else -> style.color
             },
         ),
         textAlign = align,
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(MaterialTheme.shapes.medium)
             .then(
                 when {
-                    selected -> Modifier.background(colors.primary.copy(alpha = 0.16f))
-                    active -> Modifier.background(colors.primary.copy(alpha = 0.10f))
+                    selected -> Modifier.background(colors.secondaryContainer)
+                    active -> Modifier.background(colors.primaryContainer)
                     else -> Modifier
                 },
             )

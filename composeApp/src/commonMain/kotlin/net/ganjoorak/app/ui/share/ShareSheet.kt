@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
@@ -105,7 +104,7 @@ fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null
                         .fillMaxWidth()
                         .heightIn(max = 420.dp)
                         .aspectRatio(SHARE_IMAGE_WIDTH / SHARE_IMAGE_HEIGHT.toFloat())
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(MaterialTheme.shapes.large)
                         .background(MaterialTheme.colorScheme.surfaceContainer),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -183,9 +182,9 @@ fun ShareSheet(poem: Poem, onDismiss: () -> Unit, initialLines: IntRange? = null
                     Modifier
                         .fillMaxWidth()
                         .padding(vertical = 2.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(MaterialTheme.shapes.medium)
                         .background(
-                            if (isSelected) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceContainer,
+                            if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                         )
                         .clickable { selected = if (isSelected) selected - index else selected + index }
                         .padding(horizontal = 12.dp, vertical = 10.dp),

@@ -97,7 +97,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
             val expanded = listHost.open && state.recitations.isNotEmpty()
             Surface(
                 modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(),
-                shape = if (expanded) RoundedCornerShape(28.dp) else RoundedCornerShape(percent = 50),
+                shape = if (expanded) MaterialTheme.shapes.extraLarge else RoundedCornerShape(percent = 50),
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 8.dp,
                 tonalElevation = 1.dp,
@@ -162,14 +162,14 @@ private fun PlayerBar(
             modifier = Modifier.size(playSize),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = colors.onSurface,
-                contentColor = colors.surface,
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary,
             ),
         ) {
             if (state.isBuffering && state.isPlaying) {
                 CircularProgressIndicator(
                     strokeWidth = 2.dp,
-                    color = colors.surface,
+                    color = colors.onPrimary,
                     modifier = Modifier.size(18.dp),
                 )
             } else {
@@ -196,7 +196,7 @@ private fun PlayerBar(
             FilledTonalIconButton(
                 onClick = { settingsStore.update { it.copy(autoScrollWithAudio = false) } },
                 modifier = Modifier.size(iconSize),
-                shape = RoundedCornerShape(10.dp),
+                shape = MaterialTheme.shapes.medium,
             ) { eye() }
         } else {
             IconButton(
@@ -288,9 +288,9 @@ internal fun RecitationQueue(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(MaterialTheme.shapes.medium)
                         .clickable { onSelect(recitation) }
-                        .background(if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface)
+                        .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,

@@ -107,7 +107,7 @@ fun AppPageBar(title: String, scrolled: Boolean, onBack: (() -> Unit)?, actions:
             )
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }
-        HorizontalDivider(color = colors.outlineVariant.copy(alpha = barTitleAlpha))
+        HorizontalDivider(Modifier.alpha(barTitleAlpha), color = colors.outlineVariant)
     }
 }
 

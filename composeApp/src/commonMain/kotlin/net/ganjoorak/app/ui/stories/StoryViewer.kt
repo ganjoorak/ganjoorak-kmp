@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -168,13 +168,13 @@ private fun StoryViewerBody(
 
     val density = LocalDensity.current
     val dismissPx = with(density) { 110.dp.toPx() }.coerceAtLeast(STORY_DISMISS_DRAG_PX)
-    val cardShape = RoundedCornerShape(16.dp)
+    val cardShape = MaterialTheme.shapes.large
     val opacity = if (dragY > 0f) max(0.35f, 1f - dragY / 420f) else 1f
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(colors.scrim.copy(alpha = 0.45f))
+            .background(colors.scrim)
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -198,7 +198,7 @@ private fun StoryViewerBody(
                     .offset { IntOffset(0, dragY.roundToInt()) },
                 color = colors.surface.copy(alpha = opacity),
                 tonalElevation = if (isWide) 6.dp else 0.dp,
-                shape = if (isWide) cardShape else RoundedCornerShape(0.dp),
+                shape = if (isWide) cardShape else RectangleShape,
             ) {
                 if (nextQuote != null) {
                     Column(
@@ -217,10 +217,10 @@ private fun StoryViewerBody(
                                     else -> 0f
                                 }
                                 Box(
-                                    Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(50)).background(colors.surfaceVariant),
+                                    Modifier.weight(1f).height(3.dp).clip(MaterialTheme.shapes.extraExtraLarge).background(colors.surfaceVariant),
                                 ) {
                                     Box(
-                                        Modifier.fillMaxWidth(fill).height(3.dp).clip(RoundedCornerShape(50)).background(accent),
+                                        Modifier.fillMaxWidth(fill).height(3.dp).clip(MaterialTheme.shapes.extraExtraLarge).background(accent),
                                     )
                                 }
                             }
@@ -338,7 +338,7 @@ private fun StoryViewerBody(
                                     val ref = nextQuote.poemRef()
                                     if (ref != null) onOpenPoem(ref) else closeState.value()
                                 },
-                                shape = RoundedCornerShape(50),
+                                shape = MaterialTheme.shapes.extraExtraLarge,
                             ) {
                                 Text(
                                     "${nextQuote.poetName} · ${nextQuote.poemTitle}",

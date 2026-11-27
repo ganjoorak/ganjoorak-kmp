@@ -241,6 +241,7 @@ private fun Bio(text: String) {
                 if (expanded) "کمتر" else "بیشتر",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { expanded = !expanded }.padding(vertical = 6.dp),
             )
         }

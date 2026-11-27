@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Headphones
@@ -172,7 +171,7 @@ fun ExploreScreen(onBack: (() -> Unit)? = null, onOpenPoem: (PoemRef) -> Unit, o
                 items(4, key = { "skeleton-$it" }) { index ->
                     Box(
                         Modifier.fillMaxWidth().height(if (index % 2 == 0) 180.dp else 140.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(MaterialTheme.shapes.large)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     )
                 }
@@ -191,7 +190,7 @@ fun ExploreScreen(onBack: (() -> Unit)? = null, onOpenPoem: (PoemRef) -> Unit, o
 
 @Composable
 private fun CardBox(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = MaterialTheme.shapes.large
     Box(
         modifier
             .fillMaxWidth()
@@ -210,14 +209,14 @@ private fun BoxScope.Badge(content: @Composable () -> Unit) {
         Modifier
             .align(Alignment.TopEnd)
             .padding(7.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f))
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.inverseSurface)
             .padding(horizontal = 7.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.surface,
+            androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.inverseOnSurface,
         ) { content() }
     }
 }
@@ -248,7 +247,7 @@ private fun PoemCard(poem: Poem, onClick: () -> Unit) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -291,11 +290,11 @@ private fun PoetCard(poet: Poet, caption: String, tall: Boolean, onClick: () -> 
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))))
+                .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.scrim)))
                 .padding(horizontal = 10.dp, vertical = 10.dp),
         ) {
             Text(poet.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
-            Text(caption, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f), maxLines = 1)
+            Text(caption, style = MaterialTheme.typography.labelSmall, color = Color.White, maxLines = 1)
         }
     }
 }

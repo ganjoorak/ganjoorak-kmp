@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import net.ganjoorak.app.data.offline.OfflineJob
 import net.ganjoorak.app.ui.components.AppPage
 import net.ganjoorak.app.ui.components.AppRow
 import net.ganjoorak.app.ui.components.BorderedCard
+import net.ganjoorak.app.ui.components.SectionLabel
 import net.ganjoorak.app.util.toPersianDigits
 import kotlin.math.roundToInt
 
@@ -220,7 +222,9 @@ fun OfflineDownloadsScreen(
                 )
             }
         } else {
-            items.forEach { item ->
+            // Same rows as before, grouped under headings with a fixed order:
+            // active downloads first, then incomplete, then complete.
+            fun emitRow(item: OfflineItem) {
                 item(key = item.id) {
                     OfflineManagedRow(
                         item = item,
@@ -235,6 +239,23 @@ fun OfflineDownloadsScreen(
                     )
                 }
             }
+            val views = items.associateWith { item ->
+                offlineUnitView(item.id, listOf(item), listOfNotNull(active.firstOrNull { it.itemId == item.id }))
+            }
+            val groups = listOf(
+                "در حال دانلود" to items.filter { views.getValue(it).phase == OfflineUnitPhase.Busy },
+                "ناقص" to items.filter { views.getValue(it).phase == OfflineUnitPhase.Partial },
+                "کامل" to items.filter { views.getValue(it).phase == OfflineUnitPhase.Saved },
+            )
+            groups.forEach { (heading, groupItems) ->
+                if (groupItems.isEmpty()) return@forEach
+                item(key = "head-$heading") { SectionLabel(heading) }
+                groupItems.forEach(::emitRow)
+            }
+            // Defensive: a listed item is always Busy, Partial or Saved (see
+            // [offlineUnitView]), but never drop a row if that ever changes.
+            val grouped = groups.flatMap { it.second }.toSet()
+            items.filter { it !in grouped }.forEach(::emitRow)
         }
     }
 }
@@ -249,22 +270,39 @@ private fun OfflineManagedRow(item: OfflineItem, active: OfflineJob?, onOpen: ()
         else -> listOfNotNull(item.subtitle, offlineKindLabel(item.kind), persianByteSize(item.bytes).ifEmpty { null })
             .joinToString(" · ")
     }
-    AppRow(
-        title = item.title,
-        meta = status,
-        onClick = onOpen,
-        trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (view.phase == OfflineUnitPhase.Partial) {
-                    TextButton(onClick = { downloads.resume(item.id) }) { Text("تکمیل") }
+    // A determinate bar under the title while the percent is actually known:
+    // an active job with a total, or a partial item with a reference count.
+    // Saved items are complete, so they get no bar; the 18dp spinner in
+    // [OfflineUnitButton] is untouched (it lives on the poet/book pages).
+    val knownProgress: Float? = when (view.phase) {
+        OfflineUnitPhase.Busy -> if ((active?.total ?: 0) > 0) view.percent / 100f else null
+        OfflineUnitPhase.Partial -> if (item.totalRefs.isNotEmpty()) view.percent / 100f else null
+        else -> null
+    }
+    Column(Modifier.fillMaxWidth()) {
+        AppRow(
+            title = item.title,
+            meta = status,
+            onClick = onOpen,
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (view.phase == OfflineUnitPhase.Partial) {
+                        TextButton(onClick = { downloads.resume(item.id) }) { Text("تکمیل") }
+                    }
+                    IconButton(onClick = { downloads.remove(item.id) }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "حذف از آفلاین")
+                    }
                 }
-                IconButton(onClick = { downloads.remove(item.id) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = "حذف از آفلاین")
-                }
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    )
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (knownProgress != null) {
+            LinearProgressIndicator(
+                progress = { knownProgress },
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            )
+        }
+    }
 }
 
 private fun offlineKindLabel(kind: OfflineItemKind): String = when (kind) {
