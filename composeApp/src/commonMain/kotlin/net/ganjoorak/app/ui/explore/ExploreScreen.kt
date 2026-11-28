@@ -65,7 +65,6 @@ import net.ganjoorak.app.data.Poet
 import net.ganjoorak.app.ui.components.AppPageBar
 import net.ganjoorak.app.ui.components.AppPageHeader
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
-import net.ganjoorak.app.ui.menu.TinyNav
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.theme.LocalPoemStyle
 import net.ganjoorak.app.util.toPersianDigits
@@ -142,9 +141,6 @@ fun ExploreScreen(onBack: (() -> Unit)? = null, onOpenPoem: (PoemRef) -> Unit, o
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AppPageBar("کاوش", scrolled, onBack) {
-            // The tiny nav replaces the search button here — it carries
-            // search itself, so there is no second magnifier.
-            TinyNav()
             IconButton(onClick = {
                 cards.clear()
                 generation++

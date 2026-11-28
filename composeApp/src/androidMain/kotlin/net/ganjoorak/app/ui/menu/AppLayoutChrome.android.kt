@@ -12,10 +12,13 @@ actual fun AppLayoutChrome(
     navContent: @Composable () -> Unit,
     miniPlayer: @Composable () -> Unit,
 ) {
-    // The nav params are consumed through LocalTinyNav (provided by the
-    // shell in App.kt), not by the phone chrome: there is no bottom bar any
-    // more — the tiny nav lives in the poem controls row and the list bars.
+    // The nav params drive the floating destination pill (restored
+    // 2026-11-28 after the TinyNav experiment was reverted).
     PhoneAppChrome(
+        current = current,
+        favoritesCount = favoritesCount,
+        onSelect = onSelect,
+        onOpenSearch = onOpenSearch,
         navContent = navContent,
         miniPlayer = miniPlayer,
     )

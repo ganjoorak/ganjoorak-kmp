@@ -11,11 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -73,7 +70,13 @@ class RecitationListHost {
 
 val LocalRecitationListHost = staticCompositionLocalOf { RecitationListHost() }
 
-/** Compact now-playing pill, matching the website reading bar. Media controls stay LTR. */
+/** Compact now-playing pill, matching the website reading bar. Media controls stay LTR.
+ *
+ * On phone this renders only off the poem screens: on the Feed / Poem
+ * routes the unified floating bar in [net.ganjoorak.app.ui.poem.PoemFloatingControls]
+ * owns the player (stuck to the poem controls in one container), so the
+ * shell passes an empty [miniPlayer] there and this pill never duplicates
+ * the play controls. [PlayerBar] is shared with that bar. */
 @Composable
 fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier: Modifier = Modifier) {
     val state by player.state.collectAsState()
@@ -86,10 +89,8 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
     ) {
-        // The floating pill row that used to consume the system-bars insets
-        // is gone, so the player pads itself now: it never sits under the
-        // gesture bar, and takes no space at all when idle.
-        val navBarsBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        // The floating pill row below consumes the system-bars inset, so
+        // the player only needs its own 8dp gap above the pill.
         Box(
             Modifier
                 .fillMaxWidth()
@@ -97,7 +98,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
                     start = 12.dp,
                     end = 12.dp,
                     top = 8.dp,
-                    bottom = (if (usesSideNavigation) 16.dp else 8.dp) + navBarsBottom,
+                    bottom = if (usesSideNavigation) 16.dp else 8.dp,
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -137,7 +138,7 @@ fun MiniPlayer(player: PlayerController, onOpenPoem: (PoemRef) -> Unit, modifier
 }
 
 @Composable
-private fun PlayerBar(
+internal fun PlayerBar(
     player: PlayerController,
     state: PlayerState,
     listOpen: Boolean,

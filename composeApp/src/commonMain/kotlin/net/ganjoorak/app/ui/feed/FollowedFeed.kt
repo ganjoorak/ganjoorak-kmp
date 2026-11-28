@@ -36,9 +36,7 @@ import net.ganjoorak.app.data.account.poemRef
 import net.ganjoorak.app.ui.account.FollowUserButton
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.SectionLabel
-import net.ganjoorak.app.platform.usesSideNavigation
-import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
-import net.ganjoorak.app.ui.poem.PoemControlsHeight
+import net.ganjoorak.app.ui.poem.poemChromeBottomSpace
 import net.ganjoorak.app.ui.stories.ProfileAvatar
 import net.ganjoorak.app.ui.stories.StoriesRow
 
@@ -59,8 +57,10 @@ fun FollowedFeed(
     val storyState by graph.stories.state.collectAsState()
     var followingCount by remember { mutableStateOf<Int?>(null) }
     var listError by remember { mutableStateOf<String?>(null) }
-    val persistentBottom = LocalPersistentNavPadding.current.calculateBottomPadding() +
-        if (usesSideNavigation) 0.dp else PoemControlsHeight
+    // Same space as the poem chrome: the floating bar (taller while a
+    // recitation is playing) + the destination pill, so the last followed
+    // poem is never hidden under the bar.
+    val persistentBottom = poemChromeBottomSpace()
 
     LaunchedEffect(session.user?.username) {
         if (!session.isSignedIn) {

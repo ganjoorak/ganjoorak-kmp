@@ -58,7 +58,6 @@ import net.ganjoorak.app.ui.components.SegmentedSwitch
 import net.ganjoorak.app.ui.components.TopicChip
 import net.ganjoorak.app.ui.components.rememberLoader
 import net.ganjoorak.app.ui.components.tabSwipe
-import net.ganjoorak.app.ui.menu.TinyNav
 import net.ganjoorak.app.util.hijriLifespan
 import net.ganjoorak.app.util.normalizeForSearch
 import net.ganjoorak.app.util.toPersianDigits
@@ -129,8 +128,6 @@ fun PoetsScreen(onBack: (() -> Unit)? = null, onOpenPoet: (String) -> Unit, onOp
         subtitle = "${all.size.toPersianDigits()} شاعر از گنجور و اکولالیا. به علاقه‌مندی‌ها اضافه کنید تا فید «علاقه‌مندی‌ها» از آن‌ها پر شود.",
         onBack = onBack,
         actions = {
-            // The tiny nav lives in the top bar here: the bottom menu is gone.
-            TinyNav()
             IconButton(onClick = { view = if (view == PoetsView.Grid) PoetsView.List else PoetsView.Grid }) {
                 Icon(
                     if (view == PoetsView.Grid) Icons.AutoMirrored.Filled.List else Icons.Filled.GridView,

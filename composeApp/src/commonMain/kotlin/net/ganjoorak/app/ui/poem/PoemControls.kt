@@ -1,8 +1,8 @@
 package net.ganjoorak.app.ui.poem
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -27,11 +27,14 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -39,21 +42,34 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import net.ganjoorak.app.AppGraph
 import net.ganjoorak.app.data.Poem
+import net.ganjoorak.app.data.PoemRef
 import net.ganjoorak.app.platform.usesSideNavigation
 import net.ganjoorak.app.ui.components.LocalAppActions
 import net.ganjoorak.app.ui.components.PoetAvatar
 import net.ganjoorak.app.ui.menu.LocalPersistentNavPadding
-import net.ganjoorak.app.ui.menu.TinyNav
+import net.ganjoorak.app.ui.player.LocalRecitationListHost
+import net.ganjoorak.app.ui.player.PlayerBar
+import net.ganjoorak.app.ui.player.RecitationQueue
 
-/** Height the floating bar takes at the bottom; poem lists pad their end by this much. */
+/** Height the floating bar takes at the bottom when nothing is playing (controls row only); poem lists pad their end by this much. */
 val PoemControlsHeight = 80.dp
+
+/**
+ * Height the floating bar takes while a recitation is playing: the player
+ * row (48dp) + divider + controls row (48dp) + the 10dp margins, rounded up.
+ * [poemChromeBottomSpace] switches to this so verses are never hidden
+ * under the attached player.
+ */
+val PoemControlsHeightPlaying = 124.dp
 
 private val BarHeight = 48.dp
 
@@ -75,20 +91,27 @@ class PoemChromeHost {
 val LocalPoemChromeHost = staticCompositionLocalOf { PoemChromeHost() }
 
 /**
- * Space reserved under a poem so verses are not hidden by the floating chip.
+ * Space reserved under a poem so verses are not hidden by the floating bar.
  * Desktop has no bottom chrome (actions sit in the rail column), so it only needs
- * the persistent nav padding.
+ * the persistent nav padding. On phone the reserve follows the player: the
+ * bar grows by one row when a recitation is playing, so the reserve grows
+ * with it (80dp idle, 124dp playing); the recitation queue expanding is a
+ * transient overlay on top and is not reserved.
  */
 @Composable
 fun poemChromeBottomSpace(): Dp {
     val persistent = LocalPersistentNavPadding.current.calculateBottomPadding()
-    return if (usesSideNavigation) persistent else PoemControlsHeight + persistent
+    if (usesSideNavigation) return persistent
+    val playerState by AppGraph.instance.player.state.collectAsState()
+    val bar = if (playerState.isActive) PoemControlsHeightPlaying else PoemControlsHeight
+    return bar + persistent
 }
 
 /**
- * Dispatches to the phone chip bar (tiny nav + hamburger / play /
- * share-like-poet) or publishes the desktop poem actions for the side rail
- * column (play / share-like-poet; destinations stay in the rail).
+ * Dispatches to the phone unified bar (menu / play / share-like-poet, with
+ * the player stuck on top of it in the same container while playing) or
+ * publishes the desktop poem actions for the side rail column (play /
+ * share-like-poet; destinations stay in the rail).
  */
 @Composable
 fun BoxScope.PoemFloatingControls(
@@ -101,98 +124,34 @@ fun BoxScope.PoemFloatingControls(
     onOpenPoet: ((String) -> Unit)?,
     onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)? = null,
-    /**
-     * When true (poem screen), the share / like / poet pill is omitted here —
-     * those three actions live in the vertical [PoemSideActionsColumn] instead.
-     * False (feed) keeps the bar as it was, so nothing is lost there.
-     */
-    sideActions: Boolean = false,
+    /** Opens the playing poem when the player clock is tapped. */
+    onOpenPoem: ((PoemRef) -> Unit)? = null,
 ) {
     if (usesSideNavigation) {
         DesktopPoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra)
     } else {
-        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra, sideActions)
+        PhonePoemFloatingControls(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet, onPlayLongPress, extra, onOpenPoem)
     }
 }
 
 /**
- * Poem screen only (phone): poet / heart / share as a vertical column on the
- * LEFT edge (RTL end side), stacked just above the nav pill row, bottom-aligned
- * with the play bar. Top to bottom: poet (circular portrait, opens the poet
- * page), heart (favourite toggle), share. Desktop is a no-op — the side rail
- * column hosts these actions there via [PoemChrome].
- */
-@Composable
-fun BoxScope.PoemSideActionsColumn(
-    poem: Poem?,
-    isSaved: Boolean,
-    onToggleSave: () -> Unit,
-    onShare: () -> Unit,
-    onOpenPoet: ((String) -> Unit)?,
-) {
-    if (usesSideNavigation) return
-    val current = poem ?: return
-    val colors = MaterialTheme.colorScheme
-    Column(
-        Modifier
-            .align(Alignment.BottomEnd)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(end = 12.dp, bottom = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val key = current.poetKey
-        if (key != null && onOpenPoet != null) {
-            SideActionButton(onClick = { onOpenPoet(key) }, description = current.poetName) {
-                PoetAvatar(current.poetName, current.poetImageUrl, 28.dp)
-            }
-        }
-        SideActionButton(
-            onClick = onToggleSave,
-            description = if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-        ) {
-            Icon(
-                if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                contentDescription = null,
-                tint = if (isSaved) colors.error else colors.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-        SideActionButton(onClick = onShare, description = "هم‌رسانی") {
-            Icon(
-                Icons.Filled.Share,
-                contentDescription = null,
-                tint = colors.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-/** One 48dp circular button of the side column. */
-@Composable
-private fun SideActionButton(onClick: () -> Unit, description: String, content: @Composable () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.size(48.dp),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = 6.dp,
-    ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
-    }
-}
-
-/**
- * Phone controls, matching tag v0.1.2: a compact bar of groups — the tiny
- * nav (destinations + search, where the hamburger used to sit) plus the
- * hamburger itself as a tiny circle beside it, «play» (a plain play/pause
- * button; long-press opens the recitation list in the bottom player) and,
- * unless [sideActions] moves them to the vertical column, «share, like,
- * poet», right to left. The hamburger stays visible even when there is no
- * poem (empty or «دنبال‌شده‌ها» feed) — it is the only entry to the menu
- * sheet.
+ * Phone controls: ONE unified floating bar (Hadi 2026-11-28 — the player is
+ * stuck to the controls, in the spirit of the reference screenshot): a
+ * single [surfaceContainerHigh] container holding, top to bottom, the
+ * recitation queue (when open), the player row (while a recitation is
+ * playing) and the controls row — menu / play / share-like-poet, right to
+ * left, exactly as before round 3. When nothing is playing the bar is just
+ * the controls row; the player row attaches on top the moment playback
+ * starts, so the play controls are never duplicated. The bottom destination
+ * pill (PhoneAppChrome) sits below this bar, in flow.
+ *
+ * The play capsule in the controls row is the way to start THIS poem's
+ * recitation: it shows whenever this poem is not the one playing (idle, or
+ * another poem is playing). When this poem is playing, the player row's
+ * play/pause is the only play control. Long-press on play opens the
+ * recitation list, as before. The menu chip stays visible even when there
+ * is no poem (empty or «دنبال‌شده‌ها» feed) — it is the only entry to the
+ * menu sheet.
  */
 @Composable
 private fun BoxScope.PhonePoemFloatingControls(
@@ -205,71 +164,89 @@ private fun BoxScope.PhonePoemFloatingControls(
     onOpenPoet: ((String) -> Unit)?,
     onPlayLongPress: () -> Unit = {},
     extra: (@Composable RowScope.() -> Unit)?,
-    sideActions: Boolean = false,
+    onOpenPoem: ((PoemRef) -> Unit)? = null,
 ) {
     val app = LocalAppActions.current
     val colors = MaterialTheme.colorScheme
-    Row(
+    val player = AppGraph.instance.player
+    val playerState by player.state.collectAsState()
+    val listHost = LocalRecitationListHost.current
+    if (!playerState.isActive) listHost.open = false
+    val playingThisPoem = playerState.isActive && poem != null && playerState.poemRef == poem.ref
+    val showPlayCapsule = poem != null && poem.recitations.isNotEmpty() && !playingThisPoem
+    val queueExpanded = listHost.open && playerState.recitations.isNotEmpty()
+
+    Box(
         Modifier
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        // The tiny nav took the hamburger's spot (Hadi 2026-11-27: the
-        // bottom menu is deleted, the nav is very small now); the hamburger
-        // is the tiny circle right beside it.
-        TinyNav()
-        TinyMenuButton(onClick = app.openMenu)
-        if (poem != null) {
-            if (poem.recitations.isNotEmpty()) {
-                Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
-            }
-            // With sideActions the share / like / poet actions live in the
-            // vertical PoemSideActionsColumn on the left edge instead; the
-            // pill is omitted so nothing appears twice.
-            if (!sideActions) {
-                Pill {
-                    extra?.invoke(this)
-                    BarIcon(Icons.Filled.Share, "هم‌رسانی", onShare)
-                    BarIcon(
-                        if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
-                        onToggleSave,
-                        tint = if (isSaved) colors.error else null,
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            color = colors.surfaceContainerHigh,
+            shadowElevation = 6.dp,
+        ) {
+            Column(Modifier.fillMaxWidth()) {
+                AnimatedVisibility(visible = queueExpanded) {
+                    RecitationQueue(
+                        recitations = playerState.recitations,
+                        currentId = playerState.recitation?.id,
+                        isPlaying = playerState.isPlaying,
+                        onSelect = {
+                            player.playRecitation(it)
+                            listHost.open = false
+                        },
                     )
-                    val key = poem.poetKey
-                    if (key != null && onOpenPoet != null) {
-                        BarItem(onClick = { onOpenPoet(key) }, description = poem.poetName) {
-                            PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
+                }
+                if (playerState.isActive) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        PlayerBar(
+                            player = player,
+                            state = playerState,
+                            listOpen = listHost.open,
+                            onToggleList = { listHost.open = !listHost.open },
+                            onOpenPoem = { ref -> onOpenPoem?.invoke(ref) },
+                        )
+                    }
+                    HorizontalDivider(color = colors.outlineVariant)
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(BarHeight)
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Pill { BarIcon(Icons.Filled.Menu, "منو", app.openMenu) }
+                    if (poem != null) {
+                        if (showPlayCapsule) {
+                            Pill { PlayCapsule(isPlaying, onPlay, onPlayLongPress) }
+                        }
+                        Pill {
+                            extra?.invoke(this)
+                            BarIcon(Icons.Filled.Share, "هم‌رسانی", onShare)
+                            BarIcon(
+                                if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                if (isSaved) "حذف از پسندیده‌ها" else "پسندیدن",
+                                onToggleSave,
+                                tint = if (isSaved) colors.error else null,
+                            )
+                            val key = poem.poetKey
+                            if (key != null && onOpenPoet != null) {
+                                BarItem(onClick = { onOpenPoet(key) }, description = poem.poetName) {
+                                    PoetAvatar(poem.poetName, poem.poetImageUrl, 28.dp)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-    }
-}
-
-/** The hamburger as a tiny 28dp circle beside the [TinyNav] mini-pill. */
-@Composable
-private fun TinyMenuButton(onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(28.dp)
-            .shadow(6.dp, CircleShape)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick, role = Role.Button),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.Filled.Menu,
-            contentDescription = "منو",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
-        )
     }
 }
 
@@ -295,10 +272,10 @@ private fun BoxScope.DesktopPoemFloatingControls(
     PublishPoemChrome(poem, isSaved, isPlaying, onToggleSave, onShare, onPlay, onOpenPoet)
 }
 
-/** One floating group of the bar. */
+/** One floating group of the bar. One tonal step above the bar container so the groups read as controls sitting on the bar, not as flat paint. */
 @Composable
 private fun Pill(content: @Composable RowScope.() -> Unit) {
-    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = 6.dp) {
+    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest, shadowElevation = 6.dp) {
         Row(
             Modifier.height(BarHeight).padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(0.dp),
